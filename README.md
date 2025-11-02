@@ -21,31 +21,38 @@ NTFS Manager is a comprehensive NTFS drive management solution designed specific
 ## 🚀 Quick Start
 
 ### Installation
-
 ```bash
-# Install from repository (recommended)
-sudo apt update
-sudo apt install ntfs-manager
 
-# Or download standalone installer
-wget https://github.com/magdrivex/ntfs-manager/releases/latest/download/ntfs-manager-installer.sh
-chmod +x ntfs-manager-installer.sh
-sudo ./ntfs-manager-installer.sh
+# Clone from GitHub (recommended)
+git clone https://github.com/sprinteroz/Linux-NTFS-Manager.git
+cd Linux-NTFS-Manager
+chmod +x install.sh
+sudo ./install.sh
+
+# Or download and run standalone installer
+wget https://github.com/sprinteroz/Linux-NTFS-Manager/raw/main/ntfs-installer-standalone/install-ntfs.sh
+chmod +x install-ntfs.sh
+sudo ./install-ntfs.sh
 ```
 
-### Basic Usage
+Basic Usage
 
 ```bash
+
 # Launch GUI application
+python3 ntfs-complete-manager-gui/main.py
+
+# Or use desktop launcher after installation
 ntfs-manager
 
-# Command-line interface
-ntfs-cli --list-drives
-ntfs-cli --mount /dev/sdb1
-ntfs-cli --safe-remove /dev/sdb1
+# Command-line tools (from ntfs-installer-standalone)
+sudo ntfs-automount
+sudo ntfs-safe-remove /dev/sdb1
 ```
 
 ---
+
+
 
 ## 💰 Licensing
 
