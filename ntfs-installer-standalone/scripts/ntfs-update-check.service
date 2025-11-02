@@ -1,0 +1,22 @@
+[Unit]
+Description=NTFS Components Update Check
+Documentation=man:ntfs-complete-manager-v2.sh(1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ntfs-update-check scheduled
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ntfs-update-check
+
+# Security settings
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+ReadWritePaths=/var/log/ntfs-installer /usr/local/share/ntfs-complete
+
+[Install]
+WantedBy=multi-user.target

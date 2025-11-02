@@ -1,0 +1,178 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Virtual environments
+ntfs-env/
+venv/
+.env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.log
+*.tmp
+mprofile_*.dat
+*.prof
+*.lprof
+
+# Security and credentials
+*.key
+*.pem
+*.p12
+*.crt
+*.cer
+config.json
+secrets/
+.secrets
+
+# Build artifacts
+dist/
+build/
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+benchmark_results/
+
+# Documentation build
+docs/build/
+docs/_build/
+site/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.temp
+*.swp
+*.swo
+*~
+
+# Large files that should be in releases
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Performance profiling
+*.prof
+*.lprof
+mprofile_*.dat
+
+# Security scanning
+bandit-report.json
+safety-report.json
+trivy-results.sarif
+
+# Local configuration
+local_config.json
+user_config.json
+settings.local
+.env.local
+
+# Kernel and system files
+*.ko
+*.mod
+*.img
+*.iso
+
+# Archives
+*.tar
+*.tar.bz2
+*.tgz

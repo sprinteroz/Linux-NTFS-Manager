@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#2C3E50" stroke="#34495E" stroke-width="8"/>
+  
+  <!-- HDD body -->
+  <rect x="80" y="180" width="352" height="152" rx="20" fill="#34495E"/>
+  <rect x="80" y="180" width="352" height="40" rx="20" fill="#2C3E50"/>
+  
+  <!-- HDD platters -->
+  <ellipse cx="256" cy="256" rx="120" ry="35" fill="#7F8C8D" opacity="0.8"/>
+  <ellipse cx="256" cy="256" rx="80" ry="25" fill="#95A5A6" opacity="0.6"/>
+  <ellipse cx="256" cy="256" rx="40" ry="12" fill="#BDC3C7" opacity="0.4"/>
+  
+  <!-- HDD center spindle -->
+  <circle cx="256" cy="256" r="15" fill="#2C3E50"/>
+  <circle cx="256" cy="256" r="8" fill="#1A252F"/>
+  
+  <!-- NTFS Text Banner -->
+  <rect x="120" y="140" width="272" height="35" rx="8" fill="#E74C3C"/>
+  <text x="256" y="162" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">NTFS</text>
+  
+  <!-- Linux penguin silhouette (subtle) -->
+  <g transform="translate(380, 200)">
+    <ellipse cx="0" cy="15" rx="12" ry="8" fill="#000000" opacity="0.3"/>
+    <circle cx="0" cy="5" r="6" fill="#000000" opacity="0.3"/>
+    <path d="M -8,15 Q -8,20 -6,22 L -4,22 Q -2,20 -2,15" fill="#000000" opacity="0.3"/>
+    <path d="M 8,15 Q 8,20 6,22 L 4,22 Q 2,20 2,15" fill="#000000" opacity="0.3"/>
+  </g>
+  
+  <!-- Highlight/gleam effect -->
+  <ellipse cx="180" cy="220" rx="30" ry="15" fill="white" opacity="0.2"/>
+  
+  <!-- Bottom status LED -->
+  <circle cx="200" cy="310" r="4" fill="#27AE60"/>
+  <circle cx="220" cy="310" r="4" fill="#27AE60"/>
+  <circle cx="240" cy="310" r="4" fill="#F39C12"/>
+</svg>

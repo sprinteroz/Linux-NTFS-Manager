@@ -1,0 +1,18 @@
+[Unit]
+Description=NTFS Components Update Check Timer
+Documentation=man:systemd.timer(5)
+Requires=ntfs-update-check.service
+
+[Timer]
+# Default: Weekly updates (user can configure)
+OnCalendar=weekly
+RandomizedDelaySec=1h
+Persistent=true
+
+# Alternative schedules (uncomment desired frequency):
+# Daily:   OnCalendar=daily
+# Weekly:  OnCalendar=weekly (default)
+# Monthly: OnCalendar=monthly
+
+[Install]
+WantedBy=timers.target

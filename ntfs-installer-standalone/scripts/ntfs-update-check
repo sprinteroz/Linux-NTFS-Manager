@@ -1,0 +1,373 @@
+#!/bin/bash
+
+#############################################
+# NTFS Components Update Checker
+# Checks for updates and sends notifications
+#
+# Installation: Copy to /usr/local/bin/ntfs-update-check
+# Make executable: chmod +x /usr/local/bin/ntfs-update-check
+#############################################
+
+set -euo pipefail
+
+# Configuration
+STATE_DIR="/usr/local/share/ntfs-complete"
+CONFIG_FILE="/etc/ntfs-installer/update-config.conf"
+LOG_FILE="/var/log/ntfs-installer/update-check.log"
+LAST_CHECK_FILE="$STATE_DIR/last-update-check"
+NOTIFICATION_USER="${SUDO_USER:-}"
+
+# Repositories
+NTFSPROGS_REPO="https://github.com/ntfsprogs-plus/ntfsprogs-plus.git"
+NTFSPLUS_REPO="https://github.com/namjaejeon/ntfs-kernel.git"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+#############################################
+# Logging
+#############################################
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
+}
+
+log_info() {
+    log "INFO: $*"
+}
+
+log_warn() {
+    log "WARN: $*"
+}
+
+log_error() {
+    log "ERROR: $*"
+}
+
+#############################################
+# Configuration
+#############################################
+
+load_config() {
+    # Default configuration
+    UPDATE_FREQUENCY="weekly"
+    AUTO_UPDATE=false
+    NOTIFY_USER=true
+    CHECK_ON_KERNEL_UPDATE=true
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        source "$CONFIG_FILE"
+        log_info "Loaded configuration from $CONFIG_FILE"
+    else
+        log_info "Using default configuration"
+    fi
+}
+
+#############################################
+# Update Checking
+#############################################
+
+get_installed_version() {
+    local component="$1"
+    local version_file="$STATE_DIR/versions.txt"
+    
+    if [ -f "$version_file" ]; then
+        grep "^${component}=" "$version_file" 2>/dev/null | cut -d= -f2 || echo "unknown"
+    else
+        echo "unknown"
+    fi
+}
+
+get_latest_version() {
+    local repo="$1"
+    
+    # Get latest release tag or main branch commit
+    local latest=$(git ls-remote --tags --refs "$repo" 2>/dev/null | \
+                   grep -v '\^{}' | \
+                   tail -n1 | \
+                   sed 's/.*\///' || echo "")
+    
+    if [ -n "$latest" ]; then
+        echo "$latest"
+    else
+        # Fallback to main branch
+        git ls-remote "$repo" HEAD 2>/dev/null | awk '{print substr($1,1,7)}' || echo "unknown"
+    fi
+}
+
+check_for_updates() {
+    log_info "Checking for NTFS components updates..."
+    
+    local updates_available=false
+    local update_message=""
+    
+    # Check ntfsprogs-plus
+    local ntfsprogs_current=$(get_installed_version "ntfsprogs-plus")
+    local ntfsprogs_latest=$(get_latest_version "$NTFSPROGS_REPO")
+    
+    log_info "ntfsprogs-plus: current=$ntfsprogs_current latest=$ntfsprogs_latest"
+    
+    if [ "$ntfsprogs_current" != "unknown" ] && \
+       [ "$ntfsprogs_latest" != "unknown" ] && \
+       [ "$ntfsprogs_current" != "$ntfsprogs_latest" ]; then
+        updates_available=true
+        update_message+="ntfsprogs-plus: $ntfsprogs_current → $ntfsprogs_latest\n"
+        log_info "Update available for ntfsprogs-plus"
+    fi
+    
+    # Check NTFSplus driver
+    local ntfsplus_current=$(get_installed_version "ntfsplus")
+    local ntfsplus_latest=$(get_latest_version "$NTFSPLUS_REPO")
+    
+    log_info "ntfsplus: current=$ntfsplus_current latest=$ntfsplus_latest"
+    
+    if [ "$ntfsplus_current" != "unknown" ] && \
+       [ "$ntfsplus_latest" != "unknown" ] && \
+       [ "$ntfsplus_current" != "$ntfsplus_latest" ]; then
+        updates_available=true
+        update_message+="NTFSplus driver: $ntfsplus_current → $ntfsplus_latest\n"
+        log_info "Update available for NTFSplus"
+    fi
+    
+    # Record check time
+    date '+%Y-%m-%d %H:%M:%S' > "$LAST_CHECK_FILE"
+    
+    if [ "$updates_available" = true ]; then
+        log_info "Updates available!"
+        echo -e "$update_message"
+        return 0
+    else
+        log_info "No updates available"
+        return 1
+    fi
+}
+
+#############################################
+# Notifications
+#############################################
+
+send_desktop_notification() {
+    local title="$1"
+    local message="$2"
+    local urgency="${3:-normal}"
+    
+    if [ "$NOTIFY_USER" != true ]; then
+        log_info "Desktop notifications disabled"
+        return 0
+    fi
+    
+    # Check if notify-send is available
+    if ! command -v notify-send &> /dev/null; then
+        log_warn "notify-send not available, skipping desktop notification"
+        return 1
+    fi
+    
+    # Find the actual user's display
+    local display_user="${NOTIFICATION_USER}"
+    if [ -z "$display_user" ]; then
+        # Try to find logged-in user
+        display_user=$(who | grep '(:0)' | head -n1 | awk '{print $1}' || echo "")
+    fi
+    
+    if [ -z "$display_user" ]; then
+        log_warn "No display user found for notification"
+        return 1
+    fi
+    
+    # Send notification as the display user
+    local user_uid=$(id -u "$display_user" 2>/dev/null || echo "")
+    if [ -z "$user_uid" ]; then
+        log_warn "Could not determine UID for user $display_user"
+        return 1
+    fi
+    
+    # Try to find DISPLAY and DBUS_SESSION_BUS_ADDRESS
+    local display_env=$(cat "/proc/$(pgrep -u "$display_user" gnome-session | head -n1)/environ" 2>/dev/null | \
+                       tr '\0' '\n' | grep -E '^(DISPLAY|DBUS_SESSION_BUS_ADDRESS)=' || echo "")
+    
+    if [ -n "$display_env" ]; then
+        # Send notification
+        sudo -u "$display_user" env $display_env \
+            notify-send --urgency="$urgency" \
+                       --app-name="NTFS Updater" \
+                       --icon=system-software-update \
+                       "$title" "$message" 2>/dev/null || log_warn "Failed to send notification"
+        
+        log_info "Desktop notification sent to $display_user"
+    else
+        log_warn "Could not determine display environment"
+    fi
+}
+
+#############################################
+# Main Actions
+#############################################
+
+action_scheduled_check() {
+    log_info "Scheduled update check triggered"
+    load_config
+    
+    if check_for_updates; then
+        send_desktop_notification \
+            "NTFS Updates Available" \
+            "Updates are available for NTFS components.\n\nRun: sudo ntfs-complete-manager-v2.sh --update" \
+            "normal"
+        
+        echo "Updates available. Run: sudo ntfs-complete-manager-v2.sh --update"
+        
+        if [ "$AUTO_UPDATE" = true ]; then
+            log_info "AUTO_UPDATE enabled, triggering update..."
+            if [ -x /usr/local/bin/ntfs-complete-manager-v2.sh ] || \
+               [ -x "$STATE_DIR/../../../ntfs-installer-standalone/ntfs-manager/ntfs-complete-manager-v2.sh" ]; then
+                
+                log_info "Starting automatic update..."
+                # Run update in background
+                nohup bash -c "sleep 60 && /usr/local/bin/ntfs-complete-manager-v2.sh --update" > /dev/null 2>&1 &
+                
+                send_desktop_notification \
+                    "NTFS Auto-Update" \
+                    "Automatic update will start in 60 seconds..." \
+                    "low"
+            fi
+        fi
+    else
+        log_info "System is up to date"
+        echo "No updates available"
+    fi
+}
+
+action_kernel_updated() {
+    log_info "Kernel update detected"
+    load_config
+    
+    if [ "$CHECK_ON_KERNEL_UPDATE" = true ]; then
+        log_info "Checking if NTFS components need rebuild..."
+        
+        send_desktop_notification \
+            "Kernel Updated" \
+            "NTFS kernel module may need to be rebuilt.\n\nChecking for updates..." \
+            "normal"
+        
+        # Check if NTFSplus is installed
+        if dkms status | grep -q "ntfsplus"; then
+            log_info "NTFSplus driver detected, may need rebuild"
+            
+            send_desktop_notification \
+                "NTFS Driver Rebuild" \
+                "NTFSplus driver needs to be rebuilt for new kernel.\n\nRun: sudo ntfs-complete-manager-v2.sh --update" \
+                "normal"
+        fi
+        
+        # Also check for version updates
+        action_scheduled_check
+    fi
+}
+
+action_manual_check() {
+    log_info "Manual update check triggered"
+    load_config
+    
+    echo -e "${BLUE}Checking for NTFS components updates...${NC}"
+    
+    if check_for_updates; then
+        echo -e "${YELLOW}Updates available!${NC}"
+        echo ""
+        echo "To update, run:"
+        echo "  sudo ntfs-complete-manager-v2.sh --update"
+    else
+        echo -e "${GREEN}All components are up to date!${NC}"
+    fi
+}
+
+show_status() {
+    echo -e "${CYAN}NTFS Update Status${NC}"
+    echo ""
+    
+    # Show installed versions
+    echo "Installed Versions:"
+    echo "  ntfsprogs-plus: $(get_installed_version 'ntfsprogs-plus')"
+    echo "  NTFSplus:       $(get_installed_version 'ntfsplus')"
+    echo ""
+    
+    # Show last check
+    if [ -f "$LAST_CHECK_FILE" ]; then
+        echo "Last Check: $(cat "$LAST_CHECK_FILE")"
+    else
+        echo "Last Check: Never"
+    fi
+    echo ""
+    
+    # Show configuration
+    load_config
+    echo "Configuration:"
+    echo "  Update Frequency: $UPDATE_FREQUENCY"
+    echo "  Auto Update:      $AUTO_UPDATE"
+    echo "  Notifications:    $NOTIFY_USER"
+    echo ""
+}
+
+show_usage() {
+    cat << EOF
+NTFS Components Update Checker
+
+Usage: $(basename "$0") [COMMAND]
+
+Commands:
+  scheduled       Run scheduled update check (called by systemd timer)
+  kernel-updated  Handle kernel update event (called by APT hook)
+  manual          Manually check for updates
+  status          Show update status and configuration
+  help            Show this help message
+
+Configuration:
+  Edit: /etc/ntfs-installer/update-config.conf
+
+Examples:
+  # Manual check
+  sudo ntfs-update-check manual
+  
+  # Check status
+  sudo ntfs-update-check status
+
+EOF
+}
+
+#############################################
+# Main Entry Point
+#############################################
+
+main() {
+    # Ensure directories exist
+    mkdir -p "$(dirname "$LOG_FILE")"
+    mkdir -p "$STATE_DIR"
+    
+    # Handle command
+    case "${1:-manual}" in
+        scheduled)
+            action_scheduled_check
+            ;;
+        kernel-updated)
+            action_kernel_updated
+            ;;
+        manual)
+            action_manual_check
+            ;;
+        status)
+            show_status
+            ;;
+        help|-h|--help)
+            show_usage
+            ;;
+        *)
+            echo "Unknown command: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

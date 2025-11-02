@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#############################################
+# NTFS Auto-Update APT Hook
+# Triggered after kernel updates
+#
+# Installation: Copy to /etc/apt/apt.conf.d/99ntfs-updater
+#############################################
+
+# APT Hook Configuration
+# This file should be placed at: /etc/apt/apt.conf.d/99ntfs-updater
+
+DPkg::Post-Invoke {
+    "if [ -x /usr/local/bin/ntfs-update-check ]; then /usr/local/bin/ntfs-update-check kernel-updated; fi";
+};
+
+# Trigger on kernel updates
+DPkg::Post-Invoke {
+    "if dpkg --get-selections | grep -q '^linux-image.*install$'; then touch /var/run/ntfs-kernel-updated; fi";
+};

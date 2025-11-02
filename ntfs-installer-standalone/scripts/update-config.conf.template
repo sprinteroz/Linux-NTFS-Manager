@@ -1,0 +1,56 @@
+#############################################
+# NTFS Update Configuration
+# /etc/ntfs-installer/update-config.conf
+#############################################
+
+# Update frequency: daily, weekly, monthly, manual
+# Default: weekly
+UPDATE_FREQUENCY="weekly"
+
+# Automatic updates (true/false)
+# When enabled, updates are installed automatically
+# when detected (after 60 second delay)
+# Default: false (manual updates only)
+AUTO_UPDATE=false
+
+# Desktop notifications (true/false)
+# Send notifications when updates are available
+# Default: true
+NOTIFY_USER=true
+
+# Check on kernel updates (true/false)
+# Automatically check for NTFS updates when kernel is updated
+# Recommended for DKMS modules
+# Default: true
+CHECK_ON_KERNEL_UPDATE=true
+
+# Update check timeout (seconds)
+# Maximum time to wait for update checks
+# Default: 30
+UPDATE_CHECK_TIMEOUT=30
+
+# Log verbosity: 0=errors only, 1=normal, 2=verbose
+# Default: 1
+LOG_VERBOSITY=1
+
+#############################################
+# Advanced Options
+#############################################
+
+# Skip GPG verification (NOT RECOMMENDED)
+# Default: false
+SKIP_GPG_VERIFICATION=false
+
+# Keep old versions (for rollback)
+# Default: 5 (user requirement)
+MAX_OLD_VERSIONS=5
+
+# Backup before update
+# Create backup before performing updates
+# Default: true
+BACKUP_BEFORE_UPDATE=true
+
+# Notification icons
+# Custom icon paths for notifications (optional)
+# NOTIFICATION_ICON_UPDATE="/usr/share/icons/..."
+# NOTIFICATION_ICON_ERROR="/usr/share/icons/..."

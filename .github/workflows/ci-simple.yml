@@ -1,0 +1,133 @@
+name: Continuous Integration (Simple)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install linting tools
+      run: |
+        pip install flake8 black isort mypy
+        
+    - name: Run flake8
+      run: |
+        flake8 ntfs-complete-manager-gui/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 ntfs-manager-production/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 ntfs-nautilus-extension/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        
+    - name: Run black
+      run: |
+        black --check ntfs-complete-manager-gui/
+        black --check ntfs-manager-production/
+        black --check ntfs-nautilus-extension/
+        
+    - name: Run isort
+      run: |
+        isort --check-only ntfs-complete-manager-gui/
+        isort --check-only ntfs-manager-production/
+        isort --check-only ntfs-nautilus-extension/
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install security tools
+      run: |
+        pip install bandit safety
+        
+    - name: Run bandit
+      run: |
+        bandit -r ntfs-complete-manager-gui/ -f json -o bandit-report.json
+        bandit -r ntfs-manager-production/ -f json -o bandit-production.json
+        bandit -r ntfs-nautilus-extension/ -f json -o bandit-extension.json
+
+    - name: Run safety
+      run: |
+        safety check --json --output safety-report.json
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-pango-1.0 ntfs-3g policykit-1
+        pip install --upgrade pip
+        pip install -r ntfs-manager-production/requirements.txt
+        pip install pytest pytest-cov
+        
+    - name: Run unit tests
+      run: |
+        cd ntfs-manager-production
+        python -m pytest tests/unit/ -v --cov=backend --cov-report=xml
+        
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+
+  build-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-pango-1.0 ntfs-3g policykit-1 build-essential
+        pip install --upgrade pip
+        pip install pyinstaller setuptools wheel
+        
+    - name: Test GUI build
+      run: |
+        cd ntfs-complete-manager-gui
+        pyinstaller --onefile --windowed --icon=icons/ntfs-manager-256.png --name=ntfs-manager main.py --noconfirm
+        
+    - name: Test CLI build
+      run: |
+        cd ntfs-manager-production
+        pyinstaller --onefile --name=ntfs-cli backend/cli.py --noconfirm
+        
+    - name: Verify binaries
+      run: |
+        ls -la dist/
+        file dist/ntfs-manager
+        file dist/ntfs-cli

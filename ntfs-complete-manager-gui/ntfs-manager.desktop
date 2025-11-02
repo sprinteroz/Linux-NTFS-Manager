@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=NTFS Complete Manager
+Comment=Comprehensive NTFS drive management tool
+Exec=python3 /opt/ntfs-complete-manager-gui/main.py
+Icon=/usr/share/icons/hicolor/256x256/apps/ntfs-manager.png
+Terminal=false
+Categories=System;FileTools;
+Keywords=disk;drive;ntfs;format;mount;unmount;repair;

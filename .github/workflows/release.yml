@@ -1,0 +1,249 @@
+name: NTFS Manager Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-pango-1.0 ntfs-3g policykit-1
+        pip install --upgrade pip
+        pip install -r ntfs-manager-production/requirements.txt
+        
+    - name: Run tests
+      run: |
+        cd ntfs-manager-production
+        python -m pytest tests/ -v --cov=backend --cov-report=xml
+        
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-pango-1.0 ntfs-3g policykit-1 build-essential
+        pip install --upgrade pip
+        pip install pyinstaller setuptools wheel
+        
+    - name: Build GUI application
+      run: |
+        cd ntfs-complete-manager-gui
+        pyinstaller --onefile --windowed --icon=icons/ntfs-manager-256.png --name=ntfs-manager main.py
+        
+    - name: Build CLI tools
+      run: |
+        cd ntfs-manager-production
+        pyinstaller --onefile --name=ntfs-cli backend/cli.py
+        
+    - name: Create packages
+      run: |
+        mkdir -p dist/packages
+        # Create DEB package
+        cd ntfs-complete-manager-gui
+        ./create-deb.sh
+        cp *.deb ../../dist/packages/
+        
+        # Create RPM package
+        ./create-rpm.sh
+        cp *.rpm ../../dist/packages/
+        
+        # Create TAR.GZ
+        cd ../../
+        tar -czf dist/ntfs-manager-source.tar.gz --exclude='.git' --exclude='dist' .
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ntfs-manager-build
+        path: dist/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ntfs-manager-build
+        path: dist/
+        
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/packages/*.deb
+          dist/packages/*.rpm
+          dist/ntfs-manager-source.tar.gz
+          dist/ntfs-manager
+          dist/ntfs-cli
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## NTFS Manager ${{ github.ref_name }}
+          
+          ### 🚀 Installation
+          
+          **Ubuntu/Debian (.deb):**
+          ```bash
+          wget https://github.com/magdrivex/ntfs-manager/releases/download/${{ github.ref_name }}/ntfs-manager_${{ github.ref_name }}_amd64.deb
+          sudo dpkg -i ntfs-manager_${{ github.ref_name }}_amd64.deb
+          ```
+          
+          **Fedora/openSUSE (.rpm):**
+          ```bash
+          wget https://github.com/magdrivex/ntfs-manager/releases/download/${{ github.ref_name }}/ntfs-manager-${{ github.ref_name }}.x86_64.rpm
+          sudo rpm -i ntfs-manager-${{ github.ref_name }}.x86_64.rpm
+          ```
+          
+          **Source Code:**
+          ```bash
+          wget https://github.com/magdrivex/ntfs-manager/releases/download/${{ github.ref_name }}/ntfs-manager-source.tar.gz
+          tar -xzf ntfs-manager-source.tar.gz
+          cd ntfs-manager
+          sudo ./install.sh
+          ```
+          
+          ### 📋 What's New
+          
+          See [CHANGELOG.md](https://github.com/magdrivex/ntfs-manager/blob/main/CHANGELOG.md) for detailed release notes.
+          
+          ### 💰 Licensing
+          
+          - **Free License**: Personal, educational, and non-profit use
+          - **Commercial License**: Business and enterprise use
+          
+          For commercial licensing, visit [ntfs-manager-sales/PRICING.md](https://github.com/magdrivex/ntfs-manager/blob/main/ntfs-manager-sales/PRICING.md)
+          
+          ### 📞 Support
+          
+          - **Community Support**: [GitHub Issues](https://github.com/magdrivex/ntfs-manager/issues)
+          - **Commercial Support**: [sales@magdrivex.com](mailto:sales@magdrivex.com)
+          - **Documentation**: [docs.magdrivex.com](https://docs.magdrivex.com)
+          
+          ---
+          
+          **NTFS Manager: Professional NTFS Drive Management for Linux**
+          
+          *© 2023-2025 MagDriveX. All rights reserved.*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          magdrivex/ntfs-manager:latest
+          magdrivex/ntfs-manager:${{ github.ref_name }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-ref: '.'
+        scan-type: 'fs'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  deploy-docs:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install and build docs
+      run: |
+        cd docs
+        npm install
+        npm run build
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build
+        destination_dir: docs
