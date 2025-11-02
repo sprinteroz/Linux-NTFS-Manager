@@ -176,6 +176,8 @@ ntfs-manager/
 - **Discord Community:** [discord.gg/ntfs-manager](https://discord.gg/ntfs-manager)
 - **GitHub Issues:** [Report Issues](https://github.com/magdrivex/ntfs-manager/issues)
 
+**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)**
+
 ### Commercial Support
 - **Priority Support:** 24/7 technical assistance
 - **Dedicated Account Manager:** Single point of contact
