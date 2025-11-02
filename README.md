@@ -54,7 +54,10 @@ ntfs-cli --safe-remove /dev/sdb1
 - **Full Features** - Complete NTFS management capabilities
 - **Community Support** - Forums and documentation
 - **Regular Updates** - Security patches and bug fixes
-
+- 
+**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)** 
+**Website is under maintaince non active contat by post**
+  
 ### Commercial License
 - **Required** for business and enterprise use
 - **Priority Support** - 24/7 technical assistance
@@ -176,7 +179,8 @@ ntfs-manager/
 - **Discord Community:** [discord.gg/ntfs-manager](https://discord.gg/ntfs-manager)
 - **GitHub Issues:** [Report Issues](https://github.com/magdrivex/ntfs-manager/issues)
 
-**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)**
+**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)** 
+**Website is under maintaince non active contat by post**
 
 ### Commercial Support
 - **Priority Support:** 24/7 technical assistance
