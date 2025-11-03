@@ -113,47 +113,6 @@ NTFS Manager supports 30+ languages with automatic OS language detection:
 
 ---
 
-## 📁 Repository Structure
-
-```
-ntfs-manager/
-├── README.md                    # This file - Main project overview
-├── LICENSE                      # Dual licensing terms
-├── CHANGELOG.md                 # Version history and updates
-├── ntfs-complete-manager-gui/    # Main GUI application
-│   ├── main.py                  # Application entry point
-│   ├── backend/                 # Core functionality
-│   ├── frontend/                # User interface
-│   ├── icons/                   # Application icons
-│   └── install.sh               # Installation script
-├── ntfs-nautilus-extension/      # File manager integration
-│   ├── ntfs_manager_extension.py # Nautilus extension
-│   └── install.sh               # Extension installer
-├── ntfs-installer-standalone/    # Standalone installer
-│   ├── install-ntfs.sh          # Main installation script
-│   └── scripts/                 # System integration scripts
-├── ntfs-manager-sales/           # Sales and business documentation
-│   ├── PRICING.md               # Commercial licensing pricing
-│   ├── CONTACTS.md              # Contact information
-│   ├── BUSINESS-MODELS.md        # Partnership opportunities
-│   ├── ROI-ANALYSIS.md          # Financial benefits analysis
-│   └── [additional sales docs]   # Complete business documentation
-├── ntfs-manager-production/      # Production deployment
-│   ├── backend/                 # Production backend code
-│   ├── docs/                    # Technical documentation
-│   └── scripts/                 # Deployment scripts
-├── ntfs-manager-distro-os/      # Distribution integration
-│   ├── installation-scripts/     # Package manager integration
-│   ├── configuration-templates/   # Default configurations
-│   └── docs/                    # Distribution guides
-└── modules/                     # Modular components
-    ├── 01-security/             # Security features
-    ├── 05-utilities/           # Utility functions
-    └── 08-drive-management/     # Core drive management
-```
-
----
-
 ## 🎯 Features
 
 ### Core Functionality
