@@ -231,8 +231,8 @@ We're particularly looking for translators to help with our 30+ language support
 **Company:** MagDriveX (2023-2025)  
 **ABN:** 82 977 519 307  
 **Address:** PO Box 28 Ardlethan NSW 2665 Australia  
-**Email:** sales@magdrivex.com.au / sales@magdrivex.com  
-**Phone:** +61-2-1234-5678
+**Email:** sales@magdrivex.com.au / sales@magdrivex.com  **Site under reconstruction** 
+**Phone:** +61-
 
 ### Business Hours
 - **Australia (AEST):** 9:00-17:00, Monday-Friday
