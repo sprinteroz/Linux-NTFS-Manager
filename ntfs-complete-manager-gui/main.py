@@ -465,18 +465,21 @@ class NTFSManager:
             # First unmount if mounted
             if self.drive_manager.drives.get(self.selected_drive, DriveInfo("", "", "", "", "")).mountpoint:
                 self.drive_manager.unmount_drive(self.selected_drive)
-            
+
             # Then eject the device
             device_path = f"/dev/{self.selected_drive}"
             result = subprocess.run(["eject", device_path], capture_output=True, text=True)
-            
+
             if result.returncode == 0:
                 self.update_status(f"Drive {self.selected_drive} ejected safely")
                 self.logger.operation("eject", self.selected_drive, "success")
             else:
                 self.show_error_dialog("Eject failed", f"Failed to eject drive {self.selected_drive}")
                 self.logger.operation("eject", self.selected_drive, "failed")
-    
+        except Exception as e:
+            self.show_error_dialog("Eject Error", f"An error occurred: {str(e)}")
+            self.logger.operation("eject", self.selected_drive, f"error: {str(e)}")
+
     def on_refresh_clicked(self, button):
         """Handle refresh button click"""
         self.refresh_drives()
