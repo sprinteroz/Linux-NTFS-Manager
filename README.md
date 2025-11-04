@@ -149,7 +149,7 @@ ntfs-manager --unmount /dev/sdb1
 ## 📞 Support
 
 ### Professional Support
-- **Email**: support@magdrivex.com.au  
+- **Email**: support@magdrivex.com.au  **Available in 6 months for business - once proven stable** 
 - **Documentation**: [Online Manual](https://github.com/sprinteroz/Linux-NTFS-Manager/wiki)
 - **Community**: [GitHub Discussions](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)
 
