@@ -180,19 +180,35 @@ Please include:
 
 ## 📄 License
 
-### Open Source License
-This project is licensed under the **GNU General Public License v3.0**.
+### Dual License Model
+This project uses a **DUAL LICENSE** system:
 
-### License Summary
-- ✅ **Commercial Use**: Allowed
-- ✅ **Modification**: Allowed
-- ✅ **Distribution**: Allowed
-- ✅ **Patent Use**: Allowed
-- ✅ **Private Use**: Allowed
-- ❌ **Liability**: No Warranty
+### 🏠 Personal Use - FREE
+**For home users, students, and personal projects**
+- ✅ **100% FREE** for personal, non-commercial use
+- ✅ Use at home for personal computing
+- ✅ Educational and learning purposes
+- ✅ Personal hobby projects
+- ❌ **NOT for business or commercial use**
 
-### Full License Text
-[View License File](LICENSE)
+### 💼 Commercial Use - PAID LICENSE REQUIRED
+**For businesses, companies, and organizations**
+- ⚠️ **Paid license required** for any business use
+- 💼 Pricing: $99 - $2,999 USD/year (based on company size)
+- 📧 Contact: sales@magdrivex.com.au / sales@magdrivex.com
+- 🆓 30-day free trial available
+
+### License Files
+- **[LICENSE](LICENSE)** - Dual license overview
+- **[LICENSE-PERSONAL](LICENSE-PERSONAL)** - Free personal use terms
+- **[LICENSE-COMMERCIAL](LICENSE-COMMERCIAL)** - Paid commercial terms
+- **[ntfs-manager-production/LICENSING.md](ntfs-manager-production/LICENSING.md)** - Detailed pricing and commercial information
+
+### Quick Guide
+✅ **FREE if:** Using at home, learning, personal projects  
+❌ **PAID if:** Using at work, in a business, or for profit
+
+**When in doubt, you need a commercial license.**
 
 ---
 
