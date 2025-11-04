@@ -7,7 +7,7 @@
 [![Dependency Review](https://github.com/sprinteroz/Linux-NTFS-Manager/workflows/Dependency%20Review/badge.svg)](https://github.com/sprinteroz/Linux-NTFS-Manager/actions/workflows/dependency-review.yml)
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.2-green.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.3-green.svg)](VERSION)
 
 **Professional NTFS Drive Management Solution for Linux Systems**
 
