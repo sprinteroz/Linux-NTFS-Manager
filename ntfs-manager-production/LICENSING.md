@@ -74,7 +74,7 @@ If you are using NTFS Manager in a **commercial environment** or **for profit**,
 
 If you want to include NTFS Manager in your commercial Linux distribution (Ubuntu-based, etc.):
 
-contact for more infomatition
+## contact for more infomatition
 📍 Address: PO Box 28 Ardlethan NSW 2665 Australia
 🏢 Company: MagDriveX (2023-2025)
 🆔 ABN: 82 977 519 307
