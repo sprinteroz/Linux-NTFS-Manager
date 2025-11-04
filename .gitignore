@@ -182,3 +182,8 @@ deploy-to-github.sh
 setup-github-repo.sh
 prepare-release.sh
 private-deployment/
+
+# Sensitive documentation - SECURITY: Keep these private
+GITHUB-DEPLOYMENT-GUIDE.md
+FINAL-VERIFICATION-REPORT.md
+GITHUB-RELEASE-UPLOAD-GUIDE.md
