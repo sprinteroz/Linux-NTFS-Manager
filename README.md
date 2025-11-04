@@ -197,7 +197,7 @@ This project uses a **DUAL LICENSE** system:
 - ⚠️ **Paid license required** for any business use
 - 💼 Pricing: $99 - $2,999 USD/year (based on company size)
 - 📧 Contact: sales@magdrivex.com.au / sales@magdrivex.com
-- 🆓 30-day free trial available
+- 🆓 30-day free trial available/ comming soon
 
 ### License Files
 - **[LICENSE](LICENSE)** - Dual license overview
