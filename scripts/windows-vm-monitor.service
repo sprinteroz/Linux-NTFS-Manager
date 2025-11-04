@@ -1,0 +1,20 @@
+[Unit]
+Description=Windows VM Auto-Shutdown Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/darryl/VScode/projects/clone from github ntfs manager free/Linux-NTFS-Manager/scripts
+ExecStart=/bin/bash "/home/darryl/VScode/projects/clone from github ntfs manager free/Linux-NTFS-Manager/scripts/manage-windows-vm.sh" monitor
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
