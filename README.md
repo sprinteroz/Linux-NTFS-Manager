@@ -1,363 +1,242 @@
 # NTFS Manager - Professional NTFS Drive Management for Linux
 
-**Enterprise-grade NTFS drive management solution with hot-swap support and seamless Windows compatibility**
+[![NTFS Manager Logo](https://github.com/sprinteroz/Linux-NTFS-Manager/raw/main/icons/ntfs-manager-256.png)]
+
+**Professional NTFS Drive Management Solution for Linux Systems**
+
+NTFS Manager provides reliable, secure, and feature-rich NTFS drive management for Linux desktop and server environments. Built with enterprise-grade security and comprehensive internationalization support.
 
 ---
 
-## 🎯 Overview
+## ✨ Features
 
-NTFS Manager is a comprehensive NTFS drive management solution designed specifically for Linux desktop environments. Built with enterprise-grade reliability and professional features, NTFS Manager bridges the gap between Linux and Windows file systems, providing seamless NTFS drive management with verified hot-swap capabilities.
+### Core Functionality
+- **Drive Management**: Mount, unmount, and safely remove NTFS drives
+- **File Operations**: Copy, move, delete files on NTFS partitions
+- **Drive Information**: View disk space, health status, and partition details
+- **Hot-Swap Support**: Safely remove drives without data loss
+- **Format Options**: Quick format with multiple filesystem options
+- **Permission Management**: Handle ownership and permission issues
+- **Backup Integration**: Automated backup and restore capabilities
 
-**Key Features:**
-- **Professional NTFS Management** - Enterprise-grade drive operations
-- **Verified Hot-Swap Support** - Safe drive removal and insertion
-- **Windows Compatibility** - Full NTFS feature parity
-- **Multi-Language Support** - Available in 30+ languages
-- **Enterprise Features** - Audit logging, role-based access, API integration
-- **Dual Licensing** - Free for personal use, commercial licenses available
+### User Interface
+- **Modern GTK+ Interface**: Clean, intuitive desktop application
+- **Command Line Tools**: Full CLI support for automation and scripting
+- **Nautilus Integration**: Right-click context menu for file operations
+- **System Tray**: Quick access and status monitoring
+- **Multi-Language Support**: 32 languages with automatic detection
 
----
-
-## 🚀 Quick Start
-
-### Installation
-```bash
-
-# Clone from GitHub (recommended)
-git clone https://github.com/sprinteroz/Linux-NTFS-Manager.git
-cd Linux-NTFS-Manager
-chmod +x install.sh
-sudo ./install.sh
-
-# Or download and run standalone installer
-wget https://github.com/sprinteroz/Linux-NTFS-Manager/raw/main/ntfs-installer-standalone/install-ntfs.sh
-chmod +x install-ntfs.sh
-sudo ./install-ntfs.sh
-```
-
-Basic Usage
-
-```bash
-
-# Launch GUI application
-python3 ntfs-complete-manager-gui/main.py
-
-# Or use desktop launcher after installation
-ntfs-manager
-
-# Command-line tools (from ntfs-installer-standalone)
-sudo ntfs-automount
-sudo ntfs-safe-remove /dev/sdb1
-```
-
----
-
-
-
-## 💰 Licensing
-
-### Free License (Personal Use)
-- **100% Free** for personal, educational, and non-profit use
-- **Full Features** - Complete NTFS management capabilities
-- **Community Support** - Forums and documentation
-- **Regular Updates** - Security patches and bug fixes
-- 
-**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)**
-**Website is under maintenance non active contact by post**
-  
-### Commercial License
-- **Required** for business and enterprise use
-- **Priority Support** - 24/7 technical assistance
-- **Advanced Features** - Audit logging, API access, enterprise integration
-- **Custom Development** - Tailored solutions for specific needs
-
-**Get Commercial License:** [Contact Sales](mailto:sales@magdrivex.com)
+### Enterprise Features
+- **Audit Logging**: Comprehensive operation tracking
+- **Role-Based Access**: User permission management
+- **API Integration**: Extensible for custom workflows
+- **Performance Monitoring**: Resource usage tracking
+- **Security Scanning**: Regular vulnerability assessments
 
 ---
 
 ## 🌍 Multi-Language Support
 
-**NEW: NTFS Manager now supports 32 languages with automatic language detection!**
+**32 Languages Fully Supported:**
+English, Spanish, French, German, Chinese, Japanese, Korean, Russian, Italian, Portuguese, Dutch, Polish, Turkish, Swedish, Norwegian, Danish, Finnish, Czech, Greek, Hebrew, Arabic, Hindi, Thai, Vietnamese, Indonesian, Malay, Hungarian, Romanian, Ukrainian, Bulgarian, Croatian, Serbian
 
-NTFS Manager automatically detects your system language and provides the interface in your native language. All 32 languages are included in the repository.
+### Language Detection
+- **Automatic**: System locale detection
+- **Manual**: Language selection option
+- **Fallback**: English default for missing translations
 
-### Supported Languages
+---
 
-**Core Languages (100% Complete):**
-- English, Spanish, French, German
+## 🚀 Installation
 
-**Additional 28 Languages (Partial Translation):**
-- Chinese (Simplified), Japanese, Korean, Russian, Italian, Portuguese
-- Dutch, Polish, Turkish, Swedish, Norwegian, Danish, Finnish
-- Czech, Greek, Hebrew, Arabic, Hindi, Thai, Vietnamese
-- Indonesian, Malay, Hungarian, Romanian, Ukrainian, Bulgarian
-- Croatian, Serbian
-
-### Installation
-
-**Install All Languages:**
+### Quick Install
 ```bash
+# Clone the repository
+git clone https://github.com/sprinteroz/Linux-NTFS-Manager.git
 cd Linux-NTFS-Manager
-sudo ./language-packs/install-all-languages.sh
+
+# Run installation script
+./install.sh
 ```
 
-**Install Single Language:**
-```bash
-sudo ./language-packs/install-language.sh es  # Spanish
-sudo ./language-packs/install-language.sh fr  # French
-sudo ./language-packs/install-language.sh de  # German
-```
+### Requirements
+- **Linux**: Ubuntu 20.04+, Debian 11+, Fedora 35+, openSUSE Leap 15.4+
+- **Memory**: 4GB+ RAM recommended
+- **Storage**: 500MB available space
+- **Permissions**: sudo access for system integration
 
-### Usage
-
-NTFS Manager automatically uses your system language. To manually select a language:
-```bash
-LANG=es_ES.UTF-8 ntfs-manager  # Spanish
-LANG=fr_FR.UTF-8 ntfs-manager  # French
-LANG=de_DE.UTF-8 ntfs-manager  # German
-```
-
-**[Complete Language Documentation](LANGUAGES.md)** - Full installation guide, usage examples, and developer integration
-
-**[Download Language Pack](https://github.com/sprinteroz/Linux-NTFS-Manager/releases)** - Standalone language pack available separately
+### Package Managers
+- **APT**: `sudo apt install ntfs-manager`
+- **DNF**: `sudo dnf install ntfs-manager`
+- **Pacman**: `sudo pacman -S ntfs-manager`
 
 ---
 
-## 🔧 System Requirements
+## 📊 System Requirements
 
-### Supported Platforms
-- **Ubuntu** 20.04+ / 22.04+ / 24.04+
-- **Debian** 11+ / 12+
-- **Fedora** 36+ / 37+ / 38+
-- **openSUSE** Leap 15.4+ / Tumbleweed
-- **Arch Linux** (Rolling release)
-- **Linux Mint** 20+ / 21+
+### Minimum Requirements
+- **OS**: Linux (Kernel 5.15+)
+- **Desktop**: GNOME, KDE, XFCE, MATE, Cinnamon
+- **Memory**: 4GB RAM
+- **Storage**: 500MB free space
+- **Python**: 3.8+ (included with package)
 
-### Hardware Requirements
-- **Architecture:** x86_64, ARM64, RISC-V
-- **Memory:** 512MB RAM minimum
-- **Storage:** 100MB disk space
-- **Display:** 1024x768 resolution minimum
-
-### Dependencies
-- Python 3.8+
-- GTK+ 3.0
-- NTFS-3g
-- PolicyKit (for privilege escalation)
+### Recommended Requirements
+- **OS**: Linux (Kernel 6.0+)
+- **Memory**: 8GB+ RAM
+- **Storage**: 2GB free space
+- **Display**: 1024x768 resolution
 
 ---
 
-## 🎯 Features
+## 🔧 Usage
 
-### Core Functionality
-- **Drive Detection** - Automatic NTFS drive discovery
-- **Safe Mount/Unmount** - Verified hot-swap operations
-- **Format Management** - NTFS formatting and maintenance
-- **Permission Control** - User access management
-- **Health Monitoring** - Drive status and S.M.A.R.T. data
+### GUI Application
+```bash
+# Launch from applications menu
+ntfs-manager
 
-### Enterprise Features (Commercial License)
-- **Audit Logging** - Complete operation tracking
-- **Role-Based Access** - User permission management
-- **API Integration** - RESTful API for automation
-- **Centralized Management** - Multi-system coordination
-- **Advanced Security** - Encryption and compliance features
+# Or run from command line
+ntfs-manager --help
+```
 
-### Integration Features
-- **Nautilus Extension** - Right-click context menu integration
-- **Desktop Icons** - Drive status indicators
-- **System Tray** - Quick access and notifications
-- **Command Line Tools** - Scriptable operations
+### Command Line
+```bash
+# List all drives
+ntfs-manager --list
+
+# Mount specific drive
+ntfs-manager --mount /dev/sdb1
+
+# Get drive information
+ntfs-manager --info /dev/sdb1
+
+# Unmount drive
+ntfs-manager --unmount /dev/sdb1
+```
+
+---
+
+## 📁 Downloads
+
+### Stable Release
+- **Version**: 1.0.2
+- **Release Date**: November 4, 2025
+- **Status**: Production Ready
+
+### Download Options
+- **GitHub Releases**: [Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases)
+- **Source Code**: [Browse Repository](https://github.com/sprinteroz/Linux-NTFS-Manager)
+- **Language Packs**: [Available Separately](https://github.com/sprinteroz/Linux-NTFS-Manager/releases)
+
+---
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+- **Permission Denied**: Use `sudo` for system operations
+- **Drive Not Found**: Check device paths in `/dev/`
+- **Mount Failed**: Verify NTFS-3g is installed
+- **GUI Not Starting**: Check display environment variables
+
+### Getting Help
+- **Documentation**: [Online Manual](https://github.com/sprinteroz/Linux-NTFS-Manager/wiki)
+- **Community Support**: [GitHub Discussions](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)
 
 ---
 
 ## 📞 Support
 
-### Community Support (Free License)
-- **Documentation:** [docs.magdrivex.com](https://docs.magdrivex.com)
-- **Community Forum:** [forums.magdrivex.com](https://forums.magdrivex.com)
-- **Discord Community:** [discord.gg/ntfs-manager](https://discord.gg/ntfs-manager)
-- **GitHub Issues:** [Report Issues](https://github.com/magdrivex/ntfs-manager/issues)
+### Professional Support
+- **Email**: support@ntfs-manager.com
+- **Documentation**: [Online Manual](https://github.com/sprinteroz/Linux-NTFS-Manager/wiki)
+- **Community**: [GitHub Discussions](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)
 
-**Note: (After "1-3 months" Public Testing ) -(Commercial Launch "3-6 months" if proven stable)**
-**Website is under maintenance non active contact by post**
-
-### Commercial Support
-- **Priority Support:** 24/7 technical assistance
-- **Dedicated Account Manager:** Single point of contact
-- **Custom Development:** Tailored solutions
-- **Training:** On-site and remote training options
-
-**Contact Commercial Support:** [enterprise@magdrivex.com](mailto:enterprise@magdrivex.com)
+### Reporting Issues
+Please include:
+- System information (`uname -a`)
+- NTFS Manager version
+- Error messages
+- Steps to reproduce
 
 ---
 
-## 🌐 Website Status
+## 🔒 Security
 
-**🚧 Website Under Maintenance**
+### Security Features
+- **Permission Management**: User access control
+- **Audit Logging**: Comprehensive operation tracking
+- **Safe Operations**: Verified hot-swap support
+- **Regular Updates**: Security patches and improvements
+- **Code Review**: Professional development practices
 
-Our main website [www.magdrivex.com](https://www.magdrivex.com) is currently undergoing maintenance as we migrate to new servers. 
-
-**What's Happening:**
-- **Server Migration:** Moving to improved infrastructure
-- **Service Enhancement:** Upgrading our systems for better performance
-- **Temporary Downtime:** Website and email services temporarily affected
-
-**During Maintenance:**
-- **Download Available:** GitHub releases remain fully functional
-- **Support Active:** Contact us directly at support@magdrivex.com
-- **Sales Inquiries:** Email sales@magdrivex.com for commercial licenses
-- **Documentation:** Available in this repository and docs.magdrivex.com
-
-**Expected Resolution:** Within 7-10 days
-
-We apologize for any inconvenience and appreciate your patience during this upgrade period.
-
----
-
-## 🤝 Contributing
-
-We welcome community contributions! NTFS Manager is open source and encourages developer participation.
-
-### How to Contribute
-1. **Fork** the repository
-2. **Create** a feature branch
-3. **Make** your changes
-4. **Test** thoroughly
-5. **Submit** a pull request
-
-### Contribution Areas
-- **Translations:** Help with language support
-- **Bug Fixes:** Report and fix issues
-- **Features:** Suggest and implement new features
-- **Documentation:** Improve guides and documentation
-- **Testing:** Quality assurance and testing
-
-### Translation Contributions
-We're particularly looking for translators to help with our 30+ language support goal. See [ntfs-manager-sales/TRANSLATION-FRAMEWORK.md](ntfs-manager-sales/TRANSLATION-FRAMEWORK.md) for details.
-
----
-
-## 📋 Development Status
-
-**Current Version:** Stable Release  
-**Stability:** Production Ready  
-**Testing Phase:** Completed - Now in stable deployment
-
-### Quality Assurance
-- **Automated Testing:** Comprehensive test suite
-- **Manual Testing:** Professional QA validation
-- **Beta Testing:** Community feedback incorporated
-- **Security Audit:** Regular security assessments
-
-### Release Cadence
-- **Major Releases:** Quarterly feature updates
-- **Minor Releases:** Monthly bug fixes and improvements
-- **Security Patches:** As needed for critical issues
-- **Language Updates:** Continuous translation improvements
-
----
-
-## 📊 Business Information
-
-### Company Details
-**Developer:** Darryl Bennett  
-**Company:** MagDriveX (2023-2025)  
-**ABN:** 82 977 519 307  
-**Address:** PO Box 28 Ardlethan NSW 2665 Australia  
-**Email:** sales@magdrivex.com.au / sales@magdrivex.com  
-**Site under reconstruction** 
-**Phone:** +61-
-
-### Business Hours
-- **Australia (AEST):** 9:00-17:00, Monday-Friday
-- **North America (EST):** 9:00-17:00, Monday-Friday
-- **Europe (GMT):** 9:00-17:00, Monday-Friday
-- **Asia-Pacific (AEST):** 9:00-17:00, Monday-Friday
+### Privacy
+- **No Telemetry**: No data collection without consent
+- **Local Processing**: All operations performed locally
+- **Open Source**: Transparent and auditable codebase
 
 ---
 
 ## 📄 License
 
-NTFS Manager is distributed under a dual-license model:
+### Open Source License
+This project is licensed under the **GNU General Public License v3.0**.
 
-### Free License
-- **Personal Use:** Free for individuals, educational institutions, and non-profit organizations
-- **Full Features:** Complete access to all core functionality
-- **Community Support:** Forums and documentation
-- **Source Code:** Open source with contribution rights
+### License Summary
+- ✅ **Commercial Use**: Allowed
+- ✅ **Modification**: Allowed
+- ✅ **Distribution**: Allowed
+- ✅ **Patent Use**: Allowed
+- ✅ **Private Use**: Allowed
+- ❌ **Liability**: No Warranty
 
-### Commercial License
-- **Business Use:** Required for commercial and enterprise deployments
-- **Priority Support:** 24/7 technical assistance
-- **Advanced Features:** Enterprise-grade capabilities
-- **Custom Development:** Tailored solutions available
-
-**License Details:** See [LICENSE](LICENSE) file for complete terms and conditions.
+### Full License Text
+[View License File](LICENSE)
 
 ---
 
-## 🚀 Getting Started
+## 🤝 Contributing
 
-### For Users
-1. **Download:** Get the latest release from GitHub
-2. **Install:** Run the installation script
-3. **Launch:** Start NTFS Manager from applications menu
-4. **Configure:** Set up your preferences and permissions
+We welcome contributions from the community!
 
-### For Businesses
-1. **Evaluate:** Download and test the free version
-2. **Contact:** Reach out to sales@magdrivex.com for commercial licensing
-3. **Purchase:** Obtain appropriate commercial license
-4. **Deploy:** Implement across your organization
-5. **Train:** Utilize our training resources for optimal use
+### How to Contribute
+- **Bug Reports**: [Open Issue](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)
+- **Feature Requests**: [Start Discussion](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)
+- **Code Contributions**: [Pull Requests](https://github.com/sprinteroz/Linux-NTFS-Manager/pulls)
+- **Translations**: [Translation Guide](https://github.com/sprinteroz/Linux-NTFS-Manager/wiki/Translating)
 
-### For Partners
-1. **Review:** Examine our partnership models
-2. **Contact:** Email partnerships@magdrivex.com
-3. **Integrate:** Work with our technical team
-4. **Launch:** Deploy integrated solution
-5. **Support:** Leverage our partner resources
+### Development
+- **Code Style**: Follow existing patterns
+- **Testing**: Include tests with contributions
+- **Documentation**: Update relevant sections
 
 ---
 
-## 📞 Quick Links
+## 🏆️ Acknowledgments
 
-**Essential Resources:**
-- **Download Latest Release:** [GitHub Releases](https://github.com/magdrivex/ntfs-manager/releases)
-- **Documentation:** [docs.magdrivex.com](https://docs.magdrivex.com)
-- **Commercial Licensing:** [sales@magdrivex.com](mailto:sales@magdrivex.com)
-- **Technical Support:** [support@magdrivex.com](mailto:support@magdrivex.com)
-- **Partnership Inquiries:** [partnerships@magdrivex.com](mailto:partnerships@magdrivex.com)
+### Core Technologies
+- **GTK+**: Modern user interface framework
+- **NTFS-3g**: NTFS filesystem support
+- **Python**: Cross-platform compatibility
+- **Linux**: Native system integration
 
-**Community:**
-- **GitHub Repository:** [github.com/magdrivex/ntfs-manager](https://github.com/magdrivex/ntfs-manager)
-- **Discord Community:** [discord.gg/ntfs-manager](https://discord.gg/ntfs-manager)
-- **Community Forum:** [forums.magdrivex.com](https://forums.magdrivex.com)
+### Community
+Thanks to all users who have contributed to making NTFS Manager better through feedback, testing, and suggestions.
 
 ---
 
-## 🎯 Why NTFS Manager?
+## 📈 Version History
 
-### Unique Selling Points
-1. **Verified Hot-Swap Support** - Only Linux NTFS solution with proven hot-swap capabilities
-2. **Professional Grade** - Enterprise reliability and security features
-3. **Windows Compatibility** - Full NTFS feature parity with Windows
-4. **Multi-Language Support** - Available in 30+ languages
-5. **Dual Licensing** - Free for personal use, commercial options available
+**Current Version**: 1.0.2 (Stable)
 
-### Market Differentiation
-- **Linux Focus** - Specifically designed for Linux desktop environments
-- **Enterprise Ready** - Built for business and organizational use
-- **Community Driven** - Open source with active community participation
-- **Professional Support** - Commercial backing and technical assistance
+### Recent Updates
+- **v1.0.2**: Security fixes and stability improvements
+- **v1.0.1**: System resource management tools
+- **v1.0.0**: Initial stable release
 
 ---
 
-**NTFS Manager: Professional NTFS Drive Management for Linux Desktops**
+**NTFS Manager - Professional NTFS Drive Management for Linux**
 
-**Transform your Linux drive management experience today!**
-
----
-
-*© 2023-2025 MagDriveX. All rights reserved. NTFS Manager is a trademark of MagDriveX.*
+*© 2023-2025 NTFS Manager Project. All rights reserved.*
