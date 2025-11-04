@@ -257,4 +257,4 @@ Thanks to all users who have contributed to making NTFS Manager better through f
 
 **NTFS Manager - Professional NTFS Drive Management for Linux**
 
-*© 2023-2025 NTFS Manager Project. All rights reserved.*
+*© 2023-2025 MagDriveX - NTFS Manager Project. All rights reserved.*
