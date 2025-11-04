@@ -40,10 +40,11 @@ jobs:
 
     # Install project dependencies for better analysis
     - name: Install dependencies
+      continue-on-error: true  # Don't fail if dependencies can't be installed
       run: |
         python -m pip install --upgrade pip
         if [ -f ntfs-manager-production/requirements.txt ]; then
-          pip install -r ntfs-manager-production/requirements.txt
+          pip install -r ntfs-manager-production/requirements.txt || echo "Some dependencies failed to install, continuing anyway"
         fi
 
     # Initialize CodeQL tools
@@ -93,6 +94,7 @@ jobs:
   security-scan:
     name: Additional Security Checks
     runs-on: ubuntu-latest
+    if: always()  # Run even if analyze job fails
     needs: analyze
     
     steps:
