@@ -133,10 +133,13 @@ force_shutdown() {
 auto_shutdown_monitor() {
     print_info "Starting auto-shutdown monitor..."
     print_info "Will monitor VM and shutdown when no active connections detected"
-    print_warning "Press Ctrl+C to stop monitoring"
+    print_warning "This monitor runs continuously - use systemctl to stop"
+    
+    local vm_was_running=false
     
     while true; do
         if check_vm_running; then
+            vm_was_running=true
             # Check if VNC has active connections
             local vnc_connections=$(netstat -tn | grep ":5900 " | grep ESTABLISHED | wc -l)
             
@@ -150,14 +153,18 @@ auto_shutdown_monitor() {
                 if [ $vnc_connections -eq 0 ]; then
                     print_info "Still no connections, shutting down VM..."
                     graceful_shutdown
-                    break
+                    # Continue monitoring in case VM starts again
+                    vm_was_running=false
                 fi
             else
                 print_info "Active connections: $vnc_connections - VM staying up"
             fi
         else
-            print_info "VM is not running"
-            break
+            if [ "$vm_was_running" = true ]; then
+                print_info "VM has stopped"
+                vm_was_running=false
+            fi
+            # Wait and check again - VM might start later
         fi
         
         sleep 30

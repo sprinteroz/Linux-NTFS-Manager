@@ -134,6 +134,9 @@ site/
 *.swo
 *~
 
+# LibreOffice lock files
+.~lock.*#
+
 # Large files that should be in releases
 *.tar.gz
 *.zip
