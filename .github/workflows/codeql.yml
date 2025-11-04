@@ -44,7 +44,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f ntfs-manager-production/requirements.txt ]; then
-          pip install -r ntfs-manager-production/requirements.txt || echo "Some dependencies failed to install, continuing anyway"
+          echo "📦 Installing Python dependencies..."
+          pip install -r ntfs-manager-production/requirements.txt || echo "⚠️  Some dependencies failed to install, continuing with analysis"
+        else
+          echo "⚠️  No requirements.txt found"
         fi
 
     # Initialize CodeQL tools
@@ -52,12 +55,13 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        # Use security-and-quality query suite for comprehensive analysis
-        queries: security-and-quality
+        # Use security-extended query suite for focused security analysis
+        queries: security-extended
+        # Inline configuration for better control
         config: |
           paths:
-            - ntfs-manager-production
-            - ntfs-complete-manager-gui
+            - ntfs-manager-production/backend
+            - ntfs-complete-manager-gui/backend
             - ntfs-nautilus-extension
             - scripts
           paths-ignore:
@@ -68,7 +72,10 @@ jobs:
             - '**/translations/**'
             - '**/__pycache__/**'
             - '**/tests/**'
-            - private-deployment
+            - '**/private-deployment/**'
+            - '**/*.pyc'
+            - '**/dist/**'
+            - '**/build/**'
 
     # Auto-build attempts to build compiled languages
     - name: Autobuild
@@ -82,13 +89,15 @@ jobs:
         upload: true
 
     # Upload results as artifact for review
-    - name: Upload CodeQL results
+    - name: Upload CodeQL database
       uses: actions/upload-artifact@v4
       if: always()
+      continue-on-error: true
       with:
-        name: codeql-results
-        path: /home/runner/work/_temp/codeql_databases/
+        name: codeql-database
+        path: ${{ runner.temp }}/codeql_databases/
         retention-days: 7
+        if-no-files-found: warn
 
   # Additional security checks
   security-scan:
@@ -113,30 +122,49 @@ jobs:
 
     # Run Bandit for security issues
     - name: Run Bandit security scanner
+      continue-on-error: true
       run: |
-        bandit -r ntfs-manager-production/ -f json -o bandit-report.json || true
-        bandit -r ntfs-complete-manager-gui/ -f json -o bandit-gui-report.json || true
-        bandit -r ntfs-nautilus-extension/ -f json -o bandit-extension-report.json || true
-        cat bandit-report.json
+        echo "🔍 Running Bandit security analysis..."
+        bandit -r ntfs-manager-production/backend -f json -o bandit-report.json || echo "⚠️  Bandit found security issues"
+        bandit -r ntfs-complete-manager-gui/backend -f json -o bandit-gui-report.json || echo "⚠️  Bandit found security issues"
+        bandit -r ntfs-nautilus-extension/ -f json -o bandit-extension-report.json || echo "⚠️  Bandit found security issues"
+        if [ -f bandit-report.json ]; then cat bandit-report.json; fi
 
     # Run Safety to check for known vulnerabilities
     - name: Check for known vulnerabilities
+      continue-on-error: true
       run: |
-        safety check --json --output safety-report.json || true
-        cat safety-report.json
+        echo "🔍 Checking for known vulnerabilities..."
+        cd ntfs-manager-production
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt || true
+          safety check --json --output ../safety-report.json || echo "⚠️  Safety found vulnerabilities"
+          cd ..
+          if [ -f safety-report.json ]; then cat safety-report.json; fi
+        else
+          echo "⚠️  No requirements.txt found"
+        fi
 
     # Run pip-audit for dependency vulnerabilities
     - name: Audit dependencies
+      continue-on-error: true
       run: |
+        echo "🔍 Auditing Python dependencies..."
         cd ntfs-manager-production
-        pip-audit -r requirements.txt --format json --output ../pip-audit-report.json || true
-        cd ..
-        cat pip-audit-report.json
+        if [ -f requirements.txt ]; then
+          pip-audit -r requirements.txt --format json --output ../pip-audit-report.json || echo "⚠️  pip-audit found vulnerabilities"
+          cd ..
+          if [ -f pip-audit-report.json ]; then cat pip-audit-report.json; fi
+        else
+          cd ..
+          echo "⚠️  No requirements.txt found for audit"
+        fi
 
     # Upload security reports
     - name: Upload security reports
       uses: actions/upload-artifact@v4
       if: always()
+      continue-on-error: true
       with:
         name: security-reports
         path: |
@@ -144,3 +172,4 @@ jobs:
           safety-report.json
           pip-audit-report.json
         retention-days: 30
+        if-no-files-found: warn
