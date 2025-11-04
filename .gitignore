@@ -176,3 +176,9 @@ settings.local
 *.tar
 *.tar.bz2
 *.tgz
+
+# Private deployment scripts - SECURITY: Keep these private
+deploy-to-github.sh
+setup-github-repo.sh
+prepare-release.sh
+private-deployment/
