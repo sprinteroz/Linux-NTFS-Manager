@@ -192,6 +192,7 @@ This project uses a **DUAL LICENSE** system:
 - ❌ **NOT for business or commercial use**
 
 ### 💼 Commercial Use - PAID LICENSE REQUIRED
+**Available in 6 months or once proven to be publiclly stable - in free version** 
 **For businesses, companies, and organizations**
 - ⚠️ **Paid license required** for any business use
 - 💼 Pricing: $99 - $2,999 USD/year (based on company size)
