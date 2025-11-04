@@ -62,7 +62,7 @@ If you are using NTFS Manager in a **commercial environment** or **for profit**,
 - Early access to new features
 
 **Corporate License** - For large enterprises (250+ employees)
-- **Price:** $2,999 USD/year
+- **Price:** $2,999+ USD/year
 - Dedicated support contact
 - 24/7 emergency support
 - Custom features development
@@ -74,21 +74,8 @@ If you are using NTFS Manager in a **commercial environment** or **for profit**,
 
 If you want to include NTFS Manager in your commercial Linux distribution (Ubuntu-based, etc.):
 
-**Option A: One-Time License**
-- $5,000 USD one-time fee
-- $1,000 USD/year maintenance
-- Unlimited distribution
+- contact for more infomatition MagDriveX Po Box 28 Ardlethan 2665 NSW Australia
 
-**Option B: Revenue Share**
-- 1-2% of revenue from sales/subscriptions
-- Quarterly reporting
-- Minimum $500 USD/quarter
-
-**Option C: Sponsorship**
-- Become a project sponsor
-- Logo on project page
-- Priority feature requests
-- Custom pricing available
 
 ---
 
