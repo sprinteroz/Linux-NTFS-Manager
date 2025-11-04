@@ -77,15 +77,49 @@ sudo ntfs-safe-remove /dev/sdb1
 
 ## 🌍 Multi-Language Support
 
-NTFS Manager supports 30+ languages with automatic OS language detection:
+**NEW: NTFS Manager now supports 32 languages with automatic language detection!**
 
-**Core Languages (Included):**
-- English, Spanish, French, German, Chinese (Simplified), Japanese
+NTFS Manager automatically detects your system language and provides the interface in your native language. All 32 languages are included in the repository.
 
-**Additional Languages (Available as Language Packs):**
-- Portuguese, Italian, Russian, Arabic, Hindi, and 25+ more
+### Supported Languages
 
-[View All Languages](ntfs-manager-sales/LANGUAGE-SUPPORT.md)
+**Core Languages (100% Complete):**
+- English, Spanish, French, German
+
+**Additional 28 Languages (Partial Translation):**
+- Chinese (Simplified), Japanese, Korean, Russian, Italian, Portuguese
+- Dutch, Polish, Turkish, Swedish, Norwegian, Danish, Finnish
+- Czech, Greek, Hebrew, Arabic, Hindi, Thai, Vietnamese
+- Indonesian, Malay, Hungarian, Romanian, Ukrainian, Bulgarian
+- Croatian, Serbian
+
+### Installation
+
+**Install All Languages:**
+```bash
+cd Linux-NTFS-Manager
+sudo ./language-packs/install-all-languages.sh
+```
+
+**Install Single Language:**
+```bash
+sudo ./language-packs/install-language.sh es  # Spanish
+sudo ./language-packs/install-language.sh fr  # French
+sudo ./language-packs/install-language.sh de  # German
+```
+
+### Usage
+
+NTFS Manager automatically uses your system language. To manually select a language:
+```bash
+LANG=es_ES.UTF-8 ntfs-manager  # Spanish
+LANG=fr_FR.UTF-8 ntfs-manager  # French
+LANG=de_DE.UTF-8 ntfs-manager  # German
+```
+
+**[Complete Language Documentation](LANGUAGES.md)** - Full installation guide, usage examples, and developer integration
+
+**[Download Language Pack](https://github.com/sprinteroz/Linux-NTFS-Manager/releases)** - Standalone language pack available separately
 
 ---
 
