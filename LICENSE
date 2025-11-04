@@ -1,20 +1,127 @@
-GNU GENERAL PUBLIC LICENSE
-Version 3, 29 June 2007
+# NTFS Manager - Dual License
 
-Copyright (C) 2023-2025 MagDriveX
+Copyright (C) 2023-2025 MagDriveX - Darryl Bennett  
+ABN: 82 977 519 307  
+Address: PO Box 28 Ardlethan NSW 2665 Australia
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your option)
-any later version.
+---
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
+## DUAL LICENSING TERMS
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+NTFS Manager is available under TWO different licenses depending on your use case:
 
-The complete license text can be found at:
-https://www.gnu.org/licenses/gpl-3.0.txt
+### 🏠 LICENSE A: PERSONAL USE (FREE)
+
+**For individual home users, students, and personal projects**
+
+This software is FREE for personal, non-commercial use under the following conditions:
+
+**Personal Use License Terms:**
+
+Permission is hereby granted, free of charge, to any individual person obtaining a copy of this software and associated documentation files (the "Software"), to use the Software for PERSONAL, NON-COMMERCIAL purposes only, subject to the following conditions:
+
+**YOU MAY:**
+- ✅ Use the software at home for personal purposes
+- ✅ Use for educational and learning purposes
+- ✅ Modify for your own personal use
+- ✅ Share with friends and family for personal use
+
+**YOU MAY NOT:**
+- ❌ Use in any business, company, or commercial environment
+- ❌ Use to generate revenue or profit
+- ❌ Include in any commercial product or service
+- ❌ Distribute as part of any paid offering
+- ❌ Use in any organization with more than 1 employee/member
+- ❌ Use for any work-related purposes
+
+**Conditions:**
+- The above copyright notice and this license notice shall be included in all copies or substantial portions of the Software.
+- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+For the complete personal use license terms, see: **LICENSE-PERSONAL**
+
+---
+
+### 💼 LICENSE B: COMMERCIAL USE (PAID)
+
+**For businesses, companies, organizations, and commercial use**
+
+If you are using NTFS Manager in ANY of the following scenarios, you MUST purchase a commercial license:
+
+**Commercial Use Includes:**
+- ❗ Using in a business or company (any size)
+- ❗ Using to generate revenue or profit
+- ❗ Using in any employment or work context
+- ❗ Including in commercial products or distributions
+- ❗ Providing as part of commercial services
+- ❗ Using in government or institutional settings
+- ❗ Any use by organizations with employees
+
+**Commercial License Tiers:**
+
+📋 **Startup License** - $99 USD/year (1-10 employees)  
+📋 **Professional License** - $299 USD/year (11-50 employees)  
+📋 **Enterprise License** - $999 USD/year (51-250 employees)  
+📋 **Corporate License** - $2,999 USD/year (250+ employees)
+
+For complete commercial licensing terms, see: **LICENSE-COMMERCIAL**  
+For detailed pricing and features, see: **ntfs-manager-production/LICENSING.md**
+
+---
+
+## 🛒 HOW TO OBTAIN A COMMERCIAL LICENSE
+
+**Purchase or Inquire:**
+- 📧 Email: sales@magdrivex.com.au / sales@magdrivex.com
+- 🌐 Web: Contact via GitHub repository
+- 📍 Address: MagDriveX, PO Box 28 Ardlethan NSW 2665 Australia
+- 🆔 ABN: 82 977 519 307
+
+**30-Day Free Trial Available for Businesses**
+
+---
+
+## ⚖️ LICENSE ENFORCEMENT
+
+Using NTFS Manager in a commercial setting without a valid commercial license constitutes:
+- Copyright infringement
+- Breach of license terms
+- Subject to legal action and back-payment + penalties
+
+We rely on the honor system and periodic compliance audits.
+
+---
+
+## 🔍 WHICH LICENSE DO I NEED?
+
+### Use FREE Personal License if:
+- ✅ You're using it at home
+- ✅ Personal projects only
+- ✅ Learning/education
+- ✅ No business involvement
+
+### Need PAID Commercial License if:
+- ⚠️ Using at work
+- ⚠️ Using in a company
+- ⚠️ Part of business operations
+- ⚠️ Generating any revenue
+- ⚠️ Any organizational use
+
+**When in doubt, you need a commercial license.**
+
+---
+
+## 📞 CONTACT
+
+**MagDriveX**  
+Darryl Bennett  
+ABN: 82 977 519 307  
+PO Box 28 Ardlethan NSW 2665 Australia  
+
+Email: sales@magdrivex.com.au / sales@magdrivex.com  
+Project: https://github.com/sprinteroz/Linux-NTFS-Manager
+
+---
+
+**Last Updated:** November 4, 2025  
+**Version:** 1.0.2

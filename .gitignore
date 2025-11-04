@@ -75,6 +75,7 @@ venv/
 *.swp
 *.swo
 *~
+.history/
 
 # OS
 .DS_Store
