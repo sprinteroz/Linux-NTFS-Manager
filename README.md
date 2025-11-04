@@ -245,7 +245,7 @@ Thanks to all users who have contributed to making NTFS Manager better through f
 
 ## 📈 Version History
 
-**Current Version**: 1.0.2 (Stable)
+**Current Version**: 1.0.3 (Stable)
 
 ### Recent Updates
 - **v1.0.3**: Testing new stable release
