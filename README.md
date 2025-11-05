@@ -51,6 +51,12 @@ English, Spanish, French, German, Chinese, Japanese, Korean, Russian, Italian, P
 - **Manual**: Language selection option
 - **Fallback**: English default for missing translations
 
+
+---
+
+[Screencast from 2025-11-05 11-21-32.webm](https://github.com/user-attachments/assets/97b88555-5cee-4549-b051-a5d4bec91a1e)
+
+
 ---
 
 ## 🚀 Installation
