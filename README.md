@@ -52,13 +52,24 @@ English, Spanish, French, German, Chinese, Japanese, Korean, Russian, Italian, P
 - **Fallback**: English default for missing translations
 
 
+Linux-NTFS-Manager: Hot-Swap Support & WinBoat Integration
 ---
 
 [Screencast from 2025-11-05 11-21-32.webm](https://github.com/user-attachments/assets/97b88555-5cee-4549-b051-a5d4bec91a1e)
 
-https://github.com/sprinteroz/Linux-NTFS-Manager/discussions
 ---
 
+https://github.com/sprinteroz/Linux-NTFS-Manager/discussions
+
+---
+
+Breaking: Play Steam Games on NTFS Drives in Linux with Linux-NTFS-Manager 
+---
+
+[Screencast from 2025-11-05 16-25-22.webm](https://github.com/user-attachments/assets/3f0bf3da-f227-447c-bb01-4eb142e6a3d9)
+
+---
+ 
 ## 🚀 Installation
 
 ### Quick Install
