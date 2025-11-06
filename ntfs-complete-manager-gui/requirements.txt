@@ -1,0 +1,8 @@
+# Python Requirements for NTFS Complete Manager GUI
+# Install with: pip3 install -r requirements.txt
+
+# GTK3 for Python (usually installed system-wide)
+PyGObject>=3.42.0
+
+# No additional Python packages required
+# All functionality uses standard library and system tools

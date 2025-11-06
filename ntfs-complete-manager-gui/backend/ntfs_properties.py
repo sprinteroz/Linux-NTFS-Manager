@@ -293,7 +293,7 @@ class NTFSProperties:
         try:
             # Check dirty bit and filesystem health
             result = subprocess.run(
-                ["ntfsck", "-n", self.device_path],
+                ["ntfsfix", "-n", self.device_path],
                 capture_output=True, text=True
             )
             
@@ -445,7 +445,7 @@ class NTFSProperties:
         # Filesystem check
         try:
             result = subprocess.run(
-                ["ntfsck", "-n", self.device_path],
+                ["ntfsfix", "-n", self.device_path],
                 capture_output=True, text=True
             )
             

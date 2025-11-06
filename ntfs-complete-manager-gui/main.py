@@ -102,8 +102,42 @@ class NTFSManager:
         self.setup_ui()
         self.refresh_drives()
         
+        # Auto-mount internal NTFS drives on startup
+        self.auto_mount_internal_drives()
+        
         # Start drive monitoring
         self.drive_manager.start_monitoring()
+    
+    def auto_mount_internal_drives(self):
+        """Auto-mount internal NTFS drives on startup"""
+        try:
+            mounted_count = 0
+            for drive_name, drive_info in self.drive_manager.drives.items():
+                # Mount internal NTFS drives that aren't already mounted
+                # Include sda1, sdb1, nvme1n1p1 but skip nvme0n1p (system disk)
+                if (not drive_info.mountpoint and 
+                    drive_info.fstype == "ntfs" and 
+                    not drive_info.is_removable and
+                    not drive_name.startswith("nvme0n1p")):
+                    
+                    print(f"DEBUG: Attempting to auto-mount {drive_name}")
+                    self.logger.info(f"Auto-mounting internal NTFS drive: {drive_name}")
+                    success = self.drive_manager.mount_drive(drive_name)
+                    if success:
+                        mounted_count += 1
+                        print(f"DEBUG: Successfully mounted {drive_name}")
+                        self.update_status(f"Auto-mounted {drive_name}")
+                    else:
+                        print(f"DEBUG: Failed to mount {drive_name}")
+                        self.logger.error(f"Failed to auto-mount {drive_name}")
+                        
+            # Refresh drive list to show mounted drives
+            if mounted_count > 0:
+                self.refresh_drives()
+                self.update_status(f"Auto-mounted {mounted_count} internal NTFS drive(s)")
+        except Exception as e:
+            print(f"DEBUG: Auto-mount error: {e}")
+            self.logger.error(f"Error in auto-mount: {e}")
     
     def setup_ui(self):
         # Create main window
@@ -160,6 +194,9 @@ class NTFSManager:
         format_btn = Gtk.Button(label="Format")
         format_btn.connect("clicked", self.on_format_clicked)
         
+        burn_iso_btn = Gtk.Button(label="Burn ISO")
+        burn_iso_btn.connect("clicked", self.on_burn_iso_clicked)
+        
         eject_btn = Gtk.Button(label="Safe Eject")
         eject_btn.connect("clicked", self.on_eject_clicked)
         
@@ -167,6 +204,7 @@ class NTFSManager:
         action_box.pack_start(unmount_btn, False, False, 2)
         action_box.pack_start(repair_btn, False, False, 2)
         action_box.pack_start(format_btn, False, False, 2)
+        action_box.pack_start(burn_iso_btn, False, False, 2)
         action_box.pack_start(eject_btn, False, False, 2)
         
         left_box.pack_start(action_box, False, False, 5)
@@ -279,13 +317,22 @@ class NTFSManager:
             # Get drive properties
             properties = self.drive_manager.get_drive_properties(drive_name)
             
+            # Check if we got valid properties
+            if not properties:
+                buffer = self.details_text.get_buffer()
+                buffer.set_text(f"Drive {drive_name} - No properties available")
+                return
+            
             # Get NTFS-specific properties if it's an NTFS drive
             if properties.get('fstype') == 'ntfs':
                 device_path = f"/dev/{drive_name}"
-                ntfs_props = NTFSProperties(device_path)
-                ntfs_details = ntfs_props.get_windows_style_properties()
-                
-                details_text = f"NTFS Properties for {drive_name}:\n\n{ntfs_details}"
+                try:
+                    ntfs_props = NTFSProperties(device_path)
+                    ntfs_details = ntfs_props.get_windows_style_properties()
+                    details_text = f"NTFS Properties for {drive_name}:\n\n{ntfs_details}"
+                except Exception as ntfs_error:
+                    # Fallback to basic properties if NTFS check fails
+                    details_text = self.format_basic_properties(drive_name, properties)
             else:
                 # Basic properties for non-NTFS drives
                 details_text = self.format_basic_properties(drive_name, properties)
@@ -297,7 +344,7 @@ class NTFSManager:
         except Exception as e:
             self.logger.error(f"Error updating drive details for {drive_name}: {e}")
             buffer = self.details_text.get_buffer()
-            buffer.set_text(f"Error loading drive details: {e}")
+            buffer.set_text(f"Select a drive to view details")
     
     def format_basic_properties(self, drive_name: str, properties: dict) -> str:
         """Format basic drive properties"""
@@ -344,11 +391,19 @@ class NTFSManager:
         self.drive_list_store.clear()
         
         for drive in drives:
-            status = "Mounted" if drive.mountpoint else "Unmounted"
-            if drive.health_status == "Dirty":
-                status += " (Dirty)"
-            elif drive.health_status == "Error":
-                status += " (Error)"
+            # Determine status with better UX
+            if drive.mountpoint:
+                status = "Mounted"
+            else:
+                # Not mounted - determine if it's ready or has issues
+                if drive.health_status == "Dirty":
+                    status = "Unmounted (Dirty - Needs Repair)"
+                elif drive.health_status == "Error" and drive.fstype != "Unknown":
+                    # Real filesystem error
+                    status = "Unmounted (Error)"
+                else:
+                    # Default: All unmounted drives are hot-swappable
+                    status = "Hot-Swap Ready"
             
             self.drive_list_store.append([
                 drive.name,
@@ -455,6 +510,14 @@ class NTFSManager:
         
         self.show_format_dialog()
     
+    def on_burn_iso_clicked(self, button):
+        """Handle burn ISO button click"""
+        if not self.selected_drive:
+            self.show_error_dialog("No drive selected", "Please select a target drive for ISO burning.")
+            return
+        
+        self.show_iso_burn_dialog()
+    
     def on_eject_clicked(self, button):
         """Handle safe eject button click"""
         if not self.selected_drive:
@@ -555,6 +618,211 @@ class NTFSManager:
                 self.logger.error(f"Error formatting drive {self.selected_drive}: {e}")
         
         dialog.destroy()
+    
+    def show_iso_burn_dialog(self):
+        """Show ISO burning dialog"""
+        dialog = Gtk.Dialog(title="Burn ISO to Drive", parent=self.window, flags=Gtk.DialogFlags.MODAL)
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Burn", Gtk.ResponseType.OK)
+        dialog.set_default_size(500, 300)
+        
+        content_area = dialog.get_content_area()
+        
+        # Warning label
+        warning_label = Gtk.Label(label=f"⚠️  WARNING: This will ERASE ALL DATA on {self.selected_drive}!")
+        warning_label.set_markup(f"<b><span foreground='red'>⚠️  WARNING: This will ERASE ALL DATA on {self.selected_drive}!</span></b>")
+        content_area.pack_start(warning_label, False, False, 10)
+        
+        # ISO file selection
+        iso_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        iso_label = Gtk.Label(label="ISO File:")
+        iso_entry = Gtk.Entry()
+        iso_entry.set_placeholder_text("Select an ISO file...")
+        
+        iso_browse_btn = Gtk.Button(label="Browse...")
+        
+        def on_iso_browse(button):
+            chooser = Gtk.FileChooserDialog(
+                title="Select ISO File",
+                parent=dialog,
+                action=Gtk.FileChooserAction.OPEN
+            )
+            chooser.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            chooser.add_button("Open", Gtk.ResponseType.OK)
+            
+            # Add file filter for ISO files
+            filter_iso = Gtk.FileFilter()
+            filter_iso.set_name("ISO Files")
+            filter_iso.add_pattern("*.iso")
+            filter_iso.add_pattern("*.ISO")
+            chooser.add_filter(filter_iso)
+            
+            filter_all = Gtk.FileFilter()
+            filter_all.set_name("All Files")
+            filter_all.add_pattern("*")
+            chooser.add_filter(filter_all)
+            
+            response = chooser.run()
+            if response == Gtk.ResponseType.OK:
+                iso_entry.set_text(chooser.get_filename())
+            chooser.destroy()
+        
+        iso_browse_btn.connect("clicked", on_iso_browse)
+        
+        iso_box.pack_start(iso_label, False, False, 5)
+        iso_box.pack_start(iso_entry, True, True, 5)
+        iso_box.pack_start(iso_browse_btn, False, False, 5)
+        content_area.pack_start(iso_box, False, False, 5)
+        
+        # Target drive info
+        target_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        target_label = Gtk.Label(label=f"Target Drive: /dev/{self.selected_drive}")
+        target_label.set_markup(f"<b>Target Drive: /dev/{self.selected_drive}</b>")
+        
+        # Get drive info
+        drive_info = self.drive_manager.drives.get(self.selected_drive)
+        if drive_info:
+            info_text = f"Size: {drive_info.size}\nModel: {drive_info.model or 'Unknown'}"
+            info_label = Gtk.Label(label=info_text)
+            target_box.pack_start(target_label, False, False, 5)
+            target_box.pack_start(info_label, False, False, 5)
+        
+        content_area.pack_start(target_box, False, False, 10)
+        
+        # Verification checkbox
+        verify_check = Gtk.CheckButton(label="Verify after burning (recommended)")
+        verify_check.set_active(True)
+        content_area.pack_start(verify_check, False, False, 5)
+        
+        dialog.show_all()
+        response = dialog.run()
+        
+        if response == Gtk.ResponseType.OK:
+            iso_file = iso_entry.get_text()
+            verify = verify_check.get_active()
+            
+            if not iso_file:
+                dialog.destroy()
+                self.show_error_dialog("No ISO selected", "Please select an ISO file to burn.")
+                return
+            
+            if not os.path.exists(iso_file):
+                dialog.destroy()
+                self.show_error_dialog("File not found", f"ISO file not found: {iso_file}")
+                return
+            
+            # Perform the burn operation
+            dialog.destroy()
+            self.burn_iso_to_drive(iso_file, self.selected_drive, verify)
+        else:
+            dialog.destroy()
+    
+    def burn_iso_to_drive(self, iso_file: str, drive_name: str, verify: bool = False):
+        """Burn ISO file to drive using optimized dd command with progress tracking"""
+        device_path = f"/dev/{drive_name}"
+        
+        # Get ISO file size for progress calculation
+        try:
+            iso_size = os.path.getsize(iso_file)
+        except:
+            iso_size = 0
+        
+        # Show progress dialog
+        progress_dialog = Gtk.Dialog(title="Burning ISO...", parent=self.window, flags=Gtk.DialogFlags.MODAL)
+        progress_dialog.set_default_size(500, 180)
+        
+        content = progress_dialog.get_content_area()
+        
+        status_label = Gtk.Label(label="Preparing to burn ISO...")
+        content.pack_start(status_label, False, False, 10)
+        
+        progress_bar = Gtk.ProgressBar()
+        progress_bar.set_show_text(True)
+        content.pack_start(progress_bar, False, False, 10)
+        
+        eta_label = Gtk.Label(label="Calculating...")
+        content.pack_start(eta_label, False, False, 5)
+        
+        progress_dialog.show_all()
+        
+        def burn_thread():
+            try:
+                # Unmount drive if mounted
+                if self.drive_manager.drives.get(drive_name, DriveInfo("", "", "", "", "")).mountpoint:
+                    self.drive_manager.unmount_drive(drive_name)
+                
+                # Optimized dd command for better speed
+                cmd = ["pkexec", "dd", f"if={iso_file}", f"of={device_path}", 
+                       "bs=16M",  # Larger block size for better throughput
+                       "conv=fdatasync",  # Faster than oflag=sync
+                       "status=progress"]
+                
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                                         text=True, bufsize=1, universal_newlines=True)
+                
+                start_time = time.time()
+                last_update = start_time
+                
+                while process.poll() is None:
+                    # Read stderr for progress (dd outputs to stderr)
+                    line = process.stderr.readline()
+                    if line and iso_size > 0:
+                        # Parse dd output: "X bytes (Y GB) copied, Z s, A MB/s"
+                        import re
+                        match = re.search(r'(\d+)\s+bytes', line)
+                        if match:
+                            bytes_copied = int(match.group(1))
+                            percent = min(100, (bytes_copied / iso_size) * 100)
+                            
+                            # Calculate speed and ETA
+                            elapsed = time.time() - start_time
+                            if elapsed > 0 and bytes_copied > 0:
+                                speed_bps = bytes_copied / elapsed
+                                remaining_bytes = iso_size - bytes_copied
+                                eta_seconds = remaining_bytes / speed_bps if speed_bps > 0 else 0
+                                
+                                # Format ETA
+                                eta_min = int(eta_seconds // 60)
+                                eta_sec = int(eta_seconds % 60)
+                                eta_str = f"{eta_min}m {eta_sec}s remaining" if eta_min > 0 else f"{eta_sec}s remaining"
+                                
+                                # Update UI (throttle updates)
+                                current_time = time.time()
+                                if current_time - last_update > 0.5:
+                                    GLib.idle_add(progress_bar.set_fraction, percent / 100)
+                                    GLib.idle_add(status_label.set_text, f"Burning... {percent:.1f}%")
+                                    GLib.idle_add(eta_label.set_text, eta_str)
+                                    last_update = current_time
+                    else:
+                        time.sleep(0.1)
+                
+                stdout, stderr = process.communicate()
+                
+                if process.returncode == 0:
+                    GLib.idle_add(progress_bar.set_fraction, 1.0)
+                    GLib.idle_add(status_label.set_text, "ISO burned successfully!")
+                    GLib.idle_add(eta_label.set_text, "Complete")
+                    GLib.idle_add(self.update_status, f"ISO burned to {drive_name} successfully")
+                    self.logger.operation("burn_iso", drive_name, "success", {"iso_file": iso_file})
+                    time.sleep(2)
+                    GLib.idle_add(progress_dialog.destroy)
+                    GLib.idle_add(self.refresh_drives)
+                else:
+                    error_msg = stderr or "Unknown error"
+                    GLib.idle_add(status_label.set_text, f"Error: {error_msg}")
+                    self.logger.operation("burn_iso", drive_name, "failed", {"error": error_msg})
+                    time.sleep(3)
+                    GLib.idle_add(progress_dialog.destroy)
+                    GLib.idle_add(self.show_error_dialog, "Burn Failed", f"Failed to burn ISO: {error_msg}")
+                    
+            except Exception as e:
+                GLib.idle_add(progress_dialog.destroy)
+                GLib.idle_add(self.show_error_dialog, "Burn Error", f"An error occurred: {str(e)}")
+                self.logger.error(f"Error burning ISO: {e}")
+        
+        # Start burning in background thread
+        burn_thread_obj = threading.Thread(target=burn_thread, daemon=True)
+        burn_thread_obj.start()
     
     def show_properties_dialog(self):
         """Show advanced properties dialog"""

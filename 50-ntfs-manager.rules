@@ -1,0 +1,22 @@
+// PolicyKit rules for NTFS Manager
+// Allows users in disk group to mount/unmount drives without password
+
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+         action.id == "org.freedesktop.udisks2.filesystem-mount-system" ||
+         action.id == "org.freedesktop.udisks2.filesystem-unmount" ||
+         action.id == "org.freedesktop.udisks2.eject-media" ||
+         action.id == "org.freedesktop.udisks2.filesystem-mount-other-seat" ||
+         action.id == "org.freedesktop.udisks2.filesystem-unmount-others") &&
+        subject.isInGroup("disk")) {
+        return polkit.Result.YES;
+    }
+});
+
+// Additional rule for specific user
+polkit.addRule(function(action, subject) {
+    if (action.id.indexOf("org.freedesktop.udisks2") == 0 &&
+        subject.user == "darryl") {
+        return polkit.Result.YES;
+    }
+});

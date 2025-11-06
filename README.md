@@ -8,25 +8,117 @@
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.3-green.svg)](VERSION)
 
-**Professional NTFS Drive Management Solution for Linux Systems**
+---
 
-NTFS Manager provides reliable, secure, and feature-rich NTFS drive management for Linux desktop and server environments. Built with enterprise-grade security and comprehensive internationalization support.
+## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
+
+**You're not alone.** Millions of dual-boot Linux users face this every day:
+
+> *"Help! My external drive suddenly became read-only!"*  
+> *"I can see my files but can't copy anything to the drive!"*  
+> *"Why does my Windows partition mount read-only in Linux?"*
+
+### 🤔 Why This Happens
+
+When Windows 10/11 "shuts down" with **Fast Startup enabled** (the default), it's actually **hibernating**. This leaves your NTFS drives in a "hibernated" state with a dirty bit set.
+
+Linux's ntfs-3g driver **correctly refuses** to mount these drives read-write to protect your data from corruption. You'll see errors like:
+- `The disk contains an unclean file system`
+- `Metadata kept in Windows cache, refused to mount`
+- `Mount is denied because the NTFS volume is in an unsafe state`
+
+### ✅ The Solution
+
+**Linux NTFS Manager** makes fixing this **simple and safe**:
+
+- 🎯 **One-Click Fix** - Safely removes the Windows hibernation flag
+- 📚 **Educational** - Explains what's wrong and why (not just "click here")
+- 🛡️ **Safe** - No data loss, no force-mounting, no dangerous flags
+- 🌍 **32 Languages** - Helps users worldwide understand NTFS issues
+- 🔄 **Prevents Recurrence** - Guides you to disable Fast Startup permanently
+
+**No more rebooting to Windows just to shut it down properly.**  
+**No more searching forums for `ntfsfix` commands.**  
+**No more panicking about "lost" files.**
+
+---
+
+## 🚨 CRITICAL WARNING: Known Incompatible Software
+
+### ⚠️ Balena Etcher Breaks NTFS Functionality
+
+**DO NOT INSTALL BALENA ETCHER** if you need NTFS drive functionality!
+
+Balena Etcher modifies system-level permissions that **break**:
+- ❌ NTFS drive mounting
+- ❌ Writing to NTFS partitions
+- ❌ NTFS drive formatting
+- ❌ Hot-swap functionality
+- ❌ May also affect network connectivity and Node.js
+
+**If you've already installed balena Etcher and are experiencing NTFS issues:**
+
+```bash
+# Run our recovery script to fix the damage
+cd Linux-NTFS-Manager
+sudo ./scripts/balena-etcher-recovery.sh
+```
+
+**Safe Alternatives to Balena Etcher:**
+- ✅ **GNOME Disks** (recommended): `sudo apt install gnome-disk-utility`
+- ✅ **Popsicle**: `sudo apt install popsicle-gtk`
+- ✅ **dd command**: Native Linux tool, no installation needed
+- ✅ **Ventoy**: Multi-boot USB solution
+
+📖 **[Full Details: Known Incompatible Software](docs/KNOWN-INCOMPATIBLE-SOFTWARE.md)**
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone and install
+git clone https://github.com/sprinteroz/Linux-NTFS-Manager.git
+cd Linux-NTFS-Manager
+./install.sh
+
+# Or fix read-only NTFS drives directly
+sudo ntfsfix /dev/sdX1  # Clears Windows hibernation flag
+```
+
+**[📥 Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases)** | **[📖 Read Testing Guide](TESTING-GUIDE.md)** | **[🐛 Report Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)**
+
+---
+
+## 💡 Who This Is For
+
+✅ **Dual-boot users** tired of NTFS mounting issues  
+✅ **New Linux users** who need clear explanations  
+✅ **System administrators** managing multiple NTFS drives  
+✅ **Anyone** who shares drives between Windows and Linux
 
 ---
 
 ## ✨ Features
 
 ### Core Functionality
+- **🔄 Automatic NTFS Mounting**: Internal NTFS drives auto-mount on startup with proper permissions
+- **💿 ISO Burner**: Burn ISO images to USB drives with progress tracking and verification
+- **🔌 Hotplug Monitoring**: Real-time udev monitoring for automatic drive detection and mounting
+- **🔥 Hot-Swap Ready**: Safely remove drives without data loss using udisksctl
 - **Drive Management**: Mount, unmount, and safely remove NTFS drives
+- **Dirty Bit Detection**: Identifies Windows hibernation issues automatically
+- **Safe NTFS Repair**: Uses ntfsfix to clear hibernation flags safely
+- **One-Click Remounting**: Automatically remounts after fixing
 - **File Operations**: Copy, move, delete files on NTFS partitions
 - **Drive Information**: View disk space, health status, and partition details
-- **Hot-Swap Support**: Safely remove drives without data loss
 - **Format Options**: Quick format with multiple filesystem options
+- **GParted Integration**: Advanced partitioning operations
 - **Permission Management**: Handle ownership and permission issues
-- **Backup Integration**: Automated backup and restore capabilities
 
 ### User Interface
-- **Modern GTK+ Interface**: Clean, intuitive desktop application
+- **Modern GTK3 Interface**: Clean, intuitive desktop application
+- **Educational Dialogs**: Explains WHY drives are read-only, not just HOW to fix
 - **Command Line Tools**: Full CLI support for automation and scripting
 - **Nautilus Integration**: Right-click context menu for file operations
 - **System Tray**: Quick access and status monitoring
@@ -166,6 +258,18 @@ ntfs-manager --unmount /dev/sdb1
 - **Documentation**: [Online Manual](https://github.com/sprinteroz/Linux-NTFS-Manager/wiki)
 - **Community Support**: [GitHub Discussions](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)
 - **Bug Reports**: [GitHub Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)
+
+---
+
+## 💬 Community & Discussions
+
+Join our growing community of Linux NTFS Manager users!
+
+- **[GitHub Discussions](https://github.com/sprinteroz/Linux-NTFS-Manager/discussions)** - Ask questions, share feedback, request features
+- **[Bug Reports](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)** - Report issues and track fixes
+- **[Testing Program](TESTING-GUIDE.md)** - Help test the free version and shape development
+
+**Note:** Linux NTFS Manager is free for personal use. Commercial use requires a paid license - see [LICENSE](LICENSE) for details.
 
 ---
 
