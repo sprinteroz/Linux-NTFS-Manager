@@ -1,0 +1,13 @@
+[NTFS Manager - Allow mounting drives]
+Identity=unix-group:disk
+Action=org.freedesktop.udisks2.filesystem-mount*;org.freedesktop.udisks2.filesystem-unmount*;org.freedesktop.udisks2.eject-media*
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+
+[NTFS Manager - Allow NTFS operations]
+Identity=unix-user:darryl
+Action=org.freedesktop.udisks2.*
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes

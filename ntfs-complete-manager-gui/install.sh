@@ -48,18 +48,42 @@ check_dependencies() {
         missing_deps+=("python3")
     fi
     
-    # Check GTK3
-    if ! python3 -c "import gi; gi.require_version('Gtk', '3.0')" 2>/dev/null; then
-        missing_deps+=("python3-gi")
+    # Check pip3
+    if ! command -v pip3 &> /dev/null; then
+        missing_deps+=("python3-pip")
     fi
     
-    # Check system packages
-    local sys_deps=("lsblk" "ntfs-3g" "ntfsprogs" "smartctl" "mount" "umount" "eject")
+    # Check GTK3 and GObject introspection
+    if ! python3 -c "import gi; gi.require_version('Gtk', '3.0')" 2>/dev/null; then
+        missing_deps+=("python3-gi" "gir1.2-gtk-3.0")
+    fi
+    
+    # Check system packages for NTFS operations and drive management
+    local sys_deps=("lsblk" "ntfs-3g" "smartctl" "mount" "umount" "eject" "udisksctl" "ntfsfix")
     for dep in "${sys_deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
-            missing_deps+=("$dep")
+            case "$dep" in
+                "lsblk"|"mount"|"umount")
+                    missing_deps+=("util-linux")
+                    ;;
+                "ntfs-3g"|"ntfsfix")
+                    missing_deps+=("ntfs-3g")
+                    ;;
+                "smartctl")
+                    missing_deps+=("smartmontools")
+                    ;;
+                "eject")
+                    missing_deps+=("eject")
+                    ;;
+                "udisksctl")
+                    missing_deps+=("udisks2")
+                    ;;
+            esac
         fi
     done
+    
+    # Remove duplicates
+    missing_deps=($(echo "${missing_deps[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
     
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         print_error "Missing dependencies: ${missing_deps[*]}"
