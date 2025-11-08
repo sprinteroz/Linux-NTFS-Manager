@@ -10,6 +10,7 @@ import json
 import os
 import time
 import threading
+import configparser
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
@@ -410,12 +411,135 @@ class DriveManager:
         except subprocess.CalledProcessError:
             return ""
     
-    def mount_drive(self, drive_name: str, mount_point: str = None, options: str = "") -> bool:
-        """Mount a drive using udisksctl for better PolicyKit integration"""
+    def _detect_ntfs_driver(self) -> str:
+        """
+        Detect best available NTFS driver
+        Priority: ntfs3 > lowntfs-3g > ntfs-3g
+        
+        Returns:
+            str: Driver name ('ntfs3', 'lowntfs-3g', 'ntfs-3g', or 'unknown')
+        """
+        # Check for ntfs3 kernel module (kernel 5.15+)
         try:
-            device_path = f"/dev/{drive_name}"
-            
-            # Use udisksctl for mounting (works with PolicyKit)
+            result = subprocess.run(
+                ["modprobe", "-l", "ntfs3"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0 and "ntfs3" in result.stdout:
+                # Verify kernel version
+                kernel_info = subprocess.run(
+                    ["uname", "-r"],
+                    capture_output=True, text=True, check=True
+                )
+                kernel_version = kernel_info.stdout.strip()
+                # Parse version (e.g., "5.15.0-53-generic" -> 5.15)
+                try:
+                    parts = kernel_version.split('.')
+                    major = int(parts[0])
+                    minor = int(parts[1])
+                    if major > 5 or (major == 5 and minor >= 15):
+                        print(f"[NTFS] Detected ntfs3 kernel driver (kernel {kernel_version})")
+                        return "ntfs3"
+                except (ValueError, IndexError):
+                    pass
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        # Check for lowntfs-3g (preferred FUSE driver)
+        try:
+            result = subprocess.run(
+                ["which", "lowntfs-3g"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                print("[NTFS] Detected lowntfs-3g driver")
+                return "lowntfs-3g"
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        # Check for ntfs-3g (fallback FUSE driver)
+        try:
+            result = subprocess.run(
+                ["which", "ntfs-3g"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                print("[NTFS] Detected ntfs-3g driver")
+                return "ntfs-3g"
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        print("[NTFS] WARNING: No NTFS driver detected!")
+        return "unknown"
+    
+    def _load_mount_options_config(self) -> Dict[str, str]:
+        """Load mount options from config file or use defaults"""
+        config_path = Path.home() / ".config/ntfs-manager/mount-options.conf"
+        
+        if config_path.exists():
+            try:
+                config = configparser.ConfigParser()
+                config.read(config_path)
+                options_dict = {}
+                for section in config.sections():
+                    if config.has_option(section, 'options'):
+                        options_dict[section] = config[section]['options']
+                print(f"[NTFS] Loaded custom mount options from {config_path}")
+                return options_dict
+            except Exception as e:
+                print(f"[NTFS] Error loading config from {config_path}: {e}")
+        
+        # Return defaults if no config or error
+        defaults = {
+            'ntfs3': 'nofail,users,prealloc,windows_names,nocase',
+            'lowntfs-3g': 'nofail,noexec,windows_names',
+            'ntfs-3g': 'nofail,noexec,windows_names',
+            'fallback': 'nofail'
+        }
+        print("[NTFS] Using default mount options")
+        return defaults
+    
+    def _get_ntfs_mount_options(self, driver: str) -> str:
+        """
+        Get recommended mount options for NTFS based on driver
+        
+        Args:
+            driver: NTFS driver name ('ntfs3', 'lowntfs-3g', 'ntfs-3g')
+        
+        Returns:
+            str: Comma-separated mount options
+        """
+        # Load config if not already loaded
+        if not hasattr(self, '_mount_options_config'):
+            self._mount_options_config = self._load_mount_options_config()
+        
+        # Get options for the driver, with fallback
+        options = self._mount_options_config.get(driver, self._mount_options_config.get('fallback', 'nofail'))
+        print(f"[NTFS] Using mount options for {driver}: {options}")
+        return options
+    
+    def mount_drive(self, drive_name: str, mount_point: str = None, options: str = "") -> bool:
+        """
+        Mount a drive with intelligent NTFS handling and fallback
+        
+        Args:
+            drive_name: Device name (e.g., 'sda1')
+            mount_point: Optional custom mount point
+            options: Optional custom mount options (overrides defaults)
+        
+        Returns:
+            bool: True if mounted successfully
+        """
+        device_path = f"/dev/{drive_name}"
+        fstype = self._get_filesystem_type(device_path)
+        
+        # For NTFS, use enhanced mounting with driver detection and fallback
+        if fstype == "ntfs":
+            print(f"[NTFS] Detected NTFS filesystem on {drive_name}")
+            return self._mount_ntfs_with_fallback(drive_name, mount_point, options)
+        
+        # For other filesystems, use standard mounting
+        try:
             mount_cmd = ["udisksctl", "mount", "-b", device_path]
             
             if options:
@@ -424,23 +548,163 @@ class DriveManager:
             result = subprocess.run(mount_cmd, capture_output=True, text=True, check=True)
             
             # Parse mount point from udisksctl output
-            # Output format: "Mounted /dev/sdX at /media/user/mountpoint"
             if "Mounted" in result.stdout:
                 parts = result.stdout.split(" at ")
                 if len(parts) > 1:
                     actual_mount_point = parts[1].strip().rstrip('.')
                     
-                    # Update drive info
                     if drive_name in self.drives:
                         self.drives[drive_name].mountpoint = actual_mount_point
                         self.notify_callbacks("mounted", self.drives[drive_name])
-                
+            
             return True
             
         except subprocess.CalledProcessError as e:
             print(f"Error mounting drive {drive_name}: {e}")
             print(f"stderr: {e.stderr if hasattr(e, 'stderr') else 'N/A'}")
             return False
+    
+    def _mount_ntfs_with_fallback(self, drive_name: str, mount_point: str = None, 
+                                    options: str = "") -> bool:
+        """
+        Mount NTFS with driver detection, optimized options, and fallback
+        
+        Strategy:
+        1. Detect available NTFS drivers
+        2. Try primary driver with recommended options
+        3. If dirty volume error, notify user
+        4. Try fallback drivers if mount fails
+        5. Try read-only as last resort
+        
+        Returns:
+            bool: True if mounted successfully (any mode)
+        """
+        device_path = f"/dev/{drive_name}"
+        
+        # Step 1: Detect available drivers
+        if not hasattr(self, '_ntfs_driver'):
+            self._ntfs_driver = self._detect_ntfs_driver()
+        
+        driver = self._ntfs_driver
+        print(f"[NTFS] Primary driver: {driver}")
+        
+        # Step 2: Get mount options (custom or defaults)
+        if not options:
+            options = self._get_ntfs_mount_options(driver)
+        else:
+            print(f"[NTFS] Using custom mount options: {options}")
+        
+        # Step 3: Try primary driver
+        result = subprocess.run(
+            ["udisksctl", "mount", "-b", device_path, "-o", options],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode == 0:
+            print(f"[NTFS] Successfully mounted {drive_name} with {driver}")
+            if "Mounted" in result.stdout:
+                parts = result.stdout.split(" at ")
+                if len(parts) > 1:
+                    actual_mount_point = parts[1].strip().rstrip('.')
+                    if drive_name in self.drives:
+                        self.drives[drive_name].mountpoint = actual_mount_point
+                        self.notify_callbacks("mounted", self.drives[drive_name])
+            return True
+        
+        # Step 4: Check for dirty volume
+        error_output = result.stderr.lower() if result.stderr else ""
+        if "dirty" in error_output or "inconsistent" in error_output or "hibernated" in error_output:
+            print(f"[NTFS] DIRTY VOLUME detected on {drive_name}")
+            print(f"[NTFS] Error: {result.stderr}")
+            
+            # Update health status
+            if drive_name in self.drives:
+                self.drives[drive_name].health_status = "Dirty"
+                self.notify_callbacks("dirty_volume", self.drives[drive_name])
+            
+            # Try read-only mount for data recovery
+            print(f"[NTFS] Attempting read-only mount for data recovery...")
+            result = subprocess.run(
+                ["udisksctl", "mount", "-b", device_path, "-o", "ro,nofail"],
+                capture_output=True, text=True
+            )
+            
+            if result.returncode == 0:
+                print(f"[NTFS] Mounted {drive_name} in READ-ONLY mode")
+                if "Mounted" in result.stdout:
+                    parts = result.stdout.split(" at ")
+                    if len(parts) > 1:
+                        actual_mount_point = parts[1].strip().rstrip('.')
+                        if drive_name in self.drives:
+                            self.drives[drive_name].mountpoint = actual_mount_point + " (READ-ONLY)"
+                            self.notify_callbacks("mounted_readonly", self.drives[drive_name])
+                return True
+            
+            return False
+        
+        # Step 5: Try fallback drivers
+        fallback_drivers = []
+        if driver == "ntfs3":
+            fallback_drivers = ["lowntfs-3g", "ntfs-3g"]
+        elif driver == "lowntfs-3g":
+            fallback_drivers = ["ntfs-3g", "ntfs3"]
+        elif driver == "ntfs-3g":
+            fallback_drivers = ["lowntfs-3g", "ntfs3"]
+        
+        print(f"[NTFS] Primary mount failed, trying fallback drivers: {fallback_drivers}")
+        
+        for fallback_driver in fallback_drivers:
+            # Check if fallback is available
+            if fallback_driver == "ntfs3":
+                check_cmd = ["modprobe", "-l", "ntfs3"]
+            else:
+                check_cmd = ["which", fallback_driver]
+            
+            if subprocess.run(check_cmd, capture_output=True).returncode != 0:
+                print(f"[NTFS] Fallback {fallback_driver} not available, skipping")
+                continue
+            
+            print(f"[NTFS] Trying fallback driver: {fallback_driver}")
+            fallback_options = self._get_ntfs_mount_options(fallback_driver)
+            
+            result = subprocess.run(
+                ["udisksctl", "mount", "-b", device_path, "-o", fallback_options],
+                capture_output=True, text=True
+            )
+            
+            if result.returncode == 0:
+                print(f"[NTFS] Successfully mounted with fallback driver: {fallback_driver}")
+                if "Mounted" in result.stdout:
+                    parts = result.stdout.split(" at ")
+                    if len(parts) > 1:
+                        actual_mount_point = parts[1].strip().rstrip('.')
+                        if drive_name in self.drives:
+                            self.drives[drive_name].mountpoint = actual_mount_point
+                            self.notify_callbacks("mounted", self.drives[drive_name])
+                return True
+        
+        # Step 6: Last resort - try read-only mount
+        print(f"[NTFS] All drivers failed for {drive_name}, trying read-only mount")
+        result = subprocess.run(
+            ["udisksctl", "mount", "-b", device_path, "-o", "ro,nofail"],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode == 0:
+            print(f"[NTFS] Mounted {drive_name} in READ-ONLY mode (last resort)")
+            if "Mounted" in result.stdout:
+                parts = result.stdout.split(" at ")
+                if len(parts) > 1:
+                    actual_mount_point = parts[1].strip().rstrip('.')
+                    if drive_name in self.drives:
+                        self.drives[drive_name].mountpoint = actual_mount_point + " (READ-ONLY)"
+                        self.notify_callbacks("mounted_readonly", self.drives[drive_name])
+            return True
+        
+        # Complete failure
+        print(f"[NTFS] Failed to mount {drive_name} with any method")
+        print(f"[NTFS] Last error: {result.stderr}")
+        return False
     
     def unmount_drive(self, drive_name: str) -> bool:
         """Unmount a drive using udisksctl for better PolicyKit integration"""

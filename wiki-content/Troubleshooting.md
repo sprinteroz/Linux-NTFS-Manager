@@ -325,6 +325,356 @@ sudo eject /dev/sdb
 
 ---
 
+## NTFS Mounting Issues
+
+### 🔴 Issue: "NTFS is marked dirty" Error
+
+**Most Common NTFS Problem - Especially in Dual-Boot Systems**
+
+#### Symptoms
+```
+Error mounting /dev/sdX: mount exited with exit code 14
+The disk contains an unclean file system (0, 0)
+Metadata kept in Windows cache, refused to mount
+Failed to mount '/dev/sdX': Operation not permitted
+```
+
+#### Root Causes
+1. **Windows Fast Startup enabled** (90% of dual-boot cases)
+2. Improper Windows shutdown (power loss, forced shutdown)
+3. System crash while NTFS volume was mounted
+4. Windows hibernation file present
+
+#### Solutions (Ranked by Safety)
+
+##### ✅ Solution 1: Boot Windows and Shutdown Properly (SAFEST)
+```bash
+# Steps:
+1. Boot into Windows
+2. Run CHKDSK if needed: chkdsk C: /f
+3. Shutdown (not restart) Windows properly
+4. Boot back to Linux
+5. Try mounting again
+```
+**Risk**: None  
+**Success Rate**: 99%  
+**Recommended**: Yes - Always do this first
+
+##### ✅ Solution 2: Disable Windows Fast Startup (**ESSENTIAL for Dual-Boot**)
+
+**What is Fast Startup?**
+Windows Fast Startup hibernates the kernel instead of shutting down completely. This leaves NTFS volumes in an "in-use" state that Linux sees as dirty.
+
+**How to Disable:**
+```
+1. Boot into Windows
+2. Press Windows + R, type: powercfg.cpl
+3. Click "Choose what the power buttons do"
+4. Click "Change settings that are currently unavailable"
+5. Scroll to "Shutdown settings"
+6. Uncheck "Turn on fast startup (recommended)"
+7. Click "Save changes"
+8. Shutdown (not restart) and boot to Linux
+```
+
+**Effect**: Prevents 90% of future dirty volume errors  
+**Recommendation**: **CRITICAL for all dual-boot systems**
+
+See [NTFS Mounting Guide](../docs/NTFS-MOUNTING-GUIDE.md#-issue-2-windows-fast-startup) for detailed steps.
+
+##### ⚠️ Solution 3: Use ntfsfix (MODERATE RISK)
+
+Linux NTFS Manager provides a guided repair wizard (v1.0.7+) with safety features.
+
+**Manual Method:**
+```bash
+# Check status first (read-only)
+sudo ntfsfix -n /dev/sdX1
+
+# Apply repair
+sudo ntfsfix -d /dev/sdX1
+
+# Try mounting again
+sudo mount -t ntfs-3g /dev/sdX1 /mnt/ntfs
+```
+
+**Risk**: Low, but not as thorough as Windows CHKDSK  
+**Success Rate**: 85%  
+**When to use**: When Windows is unavailable
+
+**Important**: ntfsfix is NOT a replacement for Windows CHKDSK. For serious errors, always boot Windows.
+
+##### ✅ Solution 4: Mount Read-Only (SAFE FOR DATA RECOVERY)
+```bash
+# Linux NTFS Manager does this automatically as fallback
+sudo mount -t ntfs-3g -o ro /dev/sdX1 /mnt/ntfs
+```
+
+**Risk**: None - no writes occur  
+**Use case**: Access files while planning proper repair
+
+#### Using Linux NTFS Manager (v1.0.7+)
+
+The application now includes an NTFS Repair Wizard that:
+- Automatically detects dirty volumes
+- Guides you through safe repair options
+- Explains risks for each solution
+- Provides Windows Fast Startup instructions
+
+Access via: Tools → NTFS Repair Wizard
+
+---
+
+### 🔴 Issue: Driver Detection Problems
+
+#### Symptoms
+```
+unknown filesystem type 'ntfs'
+mount: /dev/sdX: unknown filesystem type 'ntfs'
+```
+
+#### Detection
+
+**Check what drivers are available:**
+```bash
+# Check for ntfs3 kernel driver (best - kernel 5.15+)
+uname -r  # Check kernel version
+modprobe -l | grep ntfs3
+
+# Check for ntfs-3g FUSE driver
+which ntfs-3g
+dpkg -l | grep ntfs-3g  # Debian/Ubuntu
+rpm -qa | grep ntfs-3g  # Fedora/RHEL
+
+# Check for lowntfs-3g (best FUSE option)
+which lowntfs-3g
+```
+
+#### Solutions
+
+**Install Missing Drivers:**
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install ntfs-3g
+
+# Fedora/RHEL
+sudo dnf install ntfs-3g
+
+# Arch Linux
+sudo pacman -S ntfs-3g
+
+# openSUSE
+sudo zypper install ntfs-3g
+```
+
+**Load ntfs3 Kernel Module (kernel 5.15+):**
+```bash
+# Check if module is available
+modprobe -l | grep ntfs3
+
+# Load the module
+sudo modprobe ntfs3
+
+# Make permanent
+echo "ntfs3" | sudo tee -a /etc/modules
+```
+
+**Verify Installation:**
+```bash
+which ntfs-3g
+modprobe -l | grep ntfs
+```
+
+#### Linux NTFS Manager Automatic Detection
+
+Version 1.0.7+ automatically detects and uses the best available driver:
+1. **Primary**: ntfs3 (if kernel 5.15+ and module available)
+2. **Fallback 1**: lowntfs-3g (if installed)
+3. **Fallback 2**: ntfs-3g (universal fallback)
+4. **Last resort**: Read-only mount
+
+---
+
+### 🔴 Issue: Poor NTFS Performance
+
+#### Symptoms
+- Slow file transfers (< 10 MB/s with USB 3.0)
+- High CPU usage during file operations
+- System becomes unresponsive when accessing NTFS
+
+#### Diagnosis
+
+**Step 1: Check Active Driver**
+```bash
+mount | grep ntfs
+# Look for: type ntfs3 (best performance)
+# or: type fuse.ntfs-3g (slower)
+```
+
+**Step 2: Check Kernel Version**
+```bash
+uname -r
+# Need 5.15+ for ntfs3 driver
+```
+
+**Step 3: Check Mount Options**
+```bash
+mount | grep /dev/sdX1
+# Should see: prealloc, big_writes for best performance
+```
+
+**Step 4: Check USB Speed**
+```bash
+lsusb -t
+# Look for 5000M (USB 3.0) vs 480M (USB 2.0)
+```
+
+#### Solutions
+
+**Solution 1: Use ntfs3 Driver (50-100% faster)**
+```bash
+# Check kernel version (need 5.15+)
+uname -r
+
+# Load ntfs3 module
+sudo modprobe ntfs3
+
+# Remount with ntfs3
+sudo umount /dev/sdX1
+sudo mount -t ntfs3 -o nofail,users,prealloc,windows_names,nocase /dev/sdX1 /mnt/ntfs
+```
+
+**Solution 2: Optimize Mount Options**
+```bash
+# For ntfs3 (best performance)
+sudo mount -t ntfs3 -o nofail,users,prealloc,windows_names,nocase,big_writes /dev/sdX1 /mnt/ntfs
+
+# For FUSE drivers
+sudo mount -t ntfs-3g -o nofail,big_writes,windows_names /dev/sdX1 /mnt/ntfs
+```
+
+**Solution 3: Defragment in Windows**
+```
+1. Boot Windows
+2. Run: defrag C: /O
+3. Shutdown properly
+4. Boot Linux
+```
+
+**Solution 4: Verify USB 3.0 Connection**
+```bash
+# Check USB speed
+lsusb -t | grep -A 5 "12M\|480M\|5000M"
+
+# Ensure using USB 3.0 port (not 2.0)
+```
+
+#### Linux NTFS Manager Optimization (v1.0.7+)
+
+The application automatically:
+- Detects the best NTFS driver available
+- Applies optimized mount options per driver
+- Falls back if main driver fails
+- Logs performance metrics
+
+**Custom Configuration:**
+Create `~/.config/ntfs-manager/mount-options.conf` to customize mount options.
+
+See [NTFS Mounting Guide](../docs/NTFS-MOUNTING-GUIDE.md) for complete performance tuning guide.
+
+---
+
+### 🔴 Issue: Windows Hibernation Conflicts
+
+#### Symptoms
+```
+Error mounting: Hibernated NTFS partition
+The NTFS partition is in an unsafe state
+Windows is hibernated, refused to mount
+```
+
+#### Cause
+Windows fast startup or hibernation saves system state to the NTFS volume. Linux cannot safely mount while hibernation file is active.
+
+#### Solutions
+
+**Solution 1: Disable Hibernation in Windows (Recommended)**
+```powershell
+# In Windows PowerShell (as Administrator):
+powercfg /h off
+```
+
+**Solution 2: Boot Windows and Shutdown Properly**
+```
+1. Boot into Windows
+2. Shutdown (do not hibernate, do not use Sleep)
+3. Boot to Linux
+```
+
+**Solution 3: Remove Hibernation File (CAUTION)**
+```bash
+# Only if you don't need Windows hibernation
+sudo mount -t ntfs-3g -o remove_hiberfile /dev/sdX1 /mnt/ntfs
+```
+
+**Warning**: Option 3 will lose any state saved in hibernation.
+
+**Solution 4: Mount Read-Only**
+```bash
+# Safe access without modifications
+sudo mount -t ntfs-3g -o ro /dev/sdX1 /mnt/ntfs
+```
+
+---
+
+### 🔴 Issue: NTFS Permissions Problems
+
+#### Symptoms
+- Cannot create files
+- "Permission denied" when writing
+- Files owned by root after mounting
+
+#### Solutions
+
+**Solution 1: Mount with User Permissions**
+```bash
+# Mount with your user/group ID
+sudo mount -t ntfs-3g -o uid=$(id -u),gid=$(id -g) /dev/sdX1 /mnt/ntfs
+
+# Or specify user/group by name
+sudo mount -t ntfs-3g -o uid=username,gid=username /dev/sdX1 /mnt/ntfs
+```
+
+**Solution 2: Use fmask/dmask for Permissions**
+```bash
+# Files: 644 (rw-r--r--), Dirs: 755 (rwxr-xr-x)
+sudo mount -t ntfs-3g -o uid=$(id -u),gid=$(id -g),fmask=133,dmask=022 /dev/sdX1 /mnt/ntfs
+```
+
+**Solution 3: Linux NTFS Manager Automatic Handling**
+
+Version 1.0.7+ automatically sets proper user permissions when mounting, so you don't need to manually specify uid/gid.
+
+---
+
+### Additional NTFS Resources
+
+For comprehensive NTFS information, see:
+
+- **[NTFS Mounting Guide](../docs/NTFS-MOUNTING-GUIDE.md)** - Complete driver guide, mount options, troubleshooting
+- **[NTFS Enhancement Plan](../docs/NTFS-ENHANCEMENT-IMPLEMENTATION-PLAN.md)** - Technical implementation details
+- **Windows Fast Startup Disable Guide** - In NTFS Mounting Guide section
+
+**Quick Reference:**
+- Best driver: ntfs3 (kernel 5.15+)
+- Fallback drivers: lowntfs-3g, ntfs-3g
+- Dual-boot essential: Disable Windows Fast Startup
+- Dirty volumes: Boot Windows, shutdown properly
+- Performance: Use ntfs3 + prealloc mount option
+
+---
+
 ## GUI Issues
 
 ### Issue: NTFS Manager won't start
