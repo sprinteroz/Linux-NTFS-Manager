@@ -235,7 +235,7 @@ ntfs-manager --unmount /dev/sdb1
 ## 📁 Downloads
 
 ### Stable Release
-- **Version**: 1.0.2
+- **Version**: 1.0.3
 - **Release Date**: November 4, 2025
 - **Status**: Production Ready
 
