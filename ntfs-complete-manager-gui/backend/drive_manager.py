@@ -109,10 +109,32 @@ class DriveManager:
             
             # Get additional information
             full_path = f"/dev/{name}"
-            vendor = self._get_vendor(full_path)
-            health_status = self._get_health_status(full_path)
-            temperature = self._get_temperature(full_path)
-            smart_status = self._get_smart_status(full_path)
+            
+            # Use enhanced hardware info if basic lsblk didn't provide it
+            if not model and not serial:
+                hw_model, hw_vendor, hw_serial = self._get_hardware_info(name)
+                model = hw_model
+                vendor = hw_vendor
+                serial = hw_serial
+            else:
+                vendor = self._get_hardware_info(name)[1]  # Get vendor even if we have model
+            
+            # Get enhanced label if lsblk didn't provide one
+            if not label:
+                label = self._get_volume_label(full_path, fstype, label)
+            
+            # Check device type for appropriate status checks
+            device_type = self._get_device_type(name)
+            
+            # Get health and SMART status (with device type awareness)
+            if device_type in ["ram", "loop"]:
+                health_status = "N/A (virtual device)"
+                smart_status = "N/A (virtual device)"
+                temperature = 0.0
+            else:
+                health_status = self._get_health_status(full_path)
+                temperature = self._get_temperature(full_path)
+                smart_status = self._get_smart_status(full_path)
             
             return DriveInfo(
                 name=name,
@@ -135,22 +157,154 @@ class DriveManager:
             print(f"Error parsing device info: {e}")
             return None
     
-    def _get_vendor(self, device_path: str) -> str:
-        """Get device vendor information"""
+    def _get_device_type(self, device_name: str) -> str:
+        """Determine device type (disk, partition, special)"""
+        if device_name.startswith("zram") or device_name.startswith("ram"):
+            return "ram"
+        elif device_name.startswith("loop"):
+            return "loop"
+        elif device_name.startswith("sr") or device_name.startswith("cdrom"):
+            return "optical"
+        elif device_name.startswith("nvme") and "p" in device_name:
+            return "nvme_partition"
+        elif device_name.startswith("nvme"):
+            return "nvme_disk"
+        elif re.match(r'^sd[a-z]\d+$', device_name):
+            return "partition"
+        elif re.match(r'^sd[a-z]$', device_name):
+            return "disk"
+        else:
+            return "unknown"
+    
+    def _get_parent_device(self, device_name: str) -> str:
+        """Get parent device name from partition name"""
+        # sda1 -> sda, nvme0n1p1 -> nvme0n1
+        if device_name.startswith("nvme") and "p" in device_name:
+            return device_name.rsplit("p", 1)[0]
+        else:
+            # Remove trailing digits
+            return re.sub(r'\d+$', '', device_name)
+    
+    def _get_hardware_info(self, device_name: str) -> Tuple[str, str, str]:
+        """Get model, vendor, and serial from hardware
+        Returns: (model, vendor, serial)
+        """
+        device_type = self._get_device_type(device_name)
+        
+        # Special devices don't have hardware info
+        if device_type in ["ram", "loop", "optical"]:
+            return ("N/A", "N/A", "N/A")
+        
+        # For partitions, get info from parent device
+        if "partition" in device_type:
+            device_name = self._get_parent_device(device_name)
+        
+        model = ""
+        vendor = ""
+        serial = ""
+        
         try:
-            # Try to get vendor from udev
+            # Try /sys/block first
+            sys_path = f"/sys/block/{device_name}/device"
+            
+            if os.path.exists(sys_path):
+                # Read model
+                model_path = f"{sys_path}/model"
+                if os.path.exists(model_path):
+                    with open(model_path, 'r') as f:
+                        model = f.read().strip()
+                
+                # Read vendor
+                vendor_path = f"{sys_path}/vendor"
+                if os.path.exists(vendor_path):
+                    with open(vendor_path, 'r') as f:
+                        vendor = f.read().strip()
+                
+                # Read serial
+                serial_path = f"{sys_path}/serial"
+                if os.path.exists(serial_path):
+                    with open(serial_path, 'r') as f:
+                        serial = f.read().strip()
+            
+            # For NVMe devices, try different paths
+            if device_name.startswith("nvme"):
+                nvme_path = f"/sys/block/{device_name}"
+                if os.path.exists(nvme_path):
+                    model_file = f"{nvme_path}/device/model"
+                    if os.path.exists(model_file):
+                        with open(model_file, 'r') as f:
+                            model = f.read().strip()
+                    
+                    serial_file = f"{nvme_path}/device/serial"
+                    if os.path.exists(serial_file):
+                        with open(serial_file, 'r') as f:
+                            serial = f.read().strip()
+            
+            # Fallback to udevadm
+            if not model or not vendor:
+                device_path = f"/dev/{device_name}"
+                result = subprocess.run(
+                    ["udevadm", "info", "--query=property", "--name", device_path],
+                    capture_output=True, text=True, check=True
+                )
+                
+                for line in result.stdout.splitlines():
+                    if not model and line.startswith("ID_MODEL="):
+                        model = line.split("=", 1)[1].replace("_", " ")
+                    elif not vendor and line.startswith("ID_VENDOR="):
+                        vendor = line.split("=", 1)[1]
+                    elif not serial and line.startswith("ID_SERIAL_SHORT="):
+                        serial = line.split("=", 1)[1]
+                        
+        except Exception as e:
+            print(f"Error getting hardware info for {device_name}: {e}")
+        
+        return (model or "", vendor or "", serial or "")
+    
+    def _get_volume_label(self, device_path: str, fstype: str, lsblk_label: str) -> str:
+        """Get volume label with multiple fallbacks"""
+        # Return lsblk label if available
+        if lsblk_label:
+            return lsblk_label
+        
+        # Try blkid for all filesystem types
+        try:
             result = subprocess.run(
-                ["udevadm", "info", "--query=property", "--name", device_path],
+                ["blkid", "-s", "LABEL", "-o", "value", device_path],
                 capture_output=True, text=True, check=True
             )
-            
-            for line in result.stdout.splitlines():
-                if line.startswith("ID_VENDOR="):
-                    return line.split("=", 1)[1]
-                    
+            label = result.stdout.strip()
+            if label:
+                return label
         except subprocess.CalledProcessError:
             pass
-            
+        
+        # NTFS-specific: try ntfslabel
+        if fstype == "ntfs":
+            try:
+                result = subprocess.run(
+                    ["ntfslabel", device_path],
+                    capture_output=True, text=True, check=True
+                )
+                label = result.stdout.strip()
+                if label:
+                    return label
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+        
+        # ext filesystem: try e2label
+        if fstype and fstype.startswith("ext"):
+            try:
+                result = subprocess.run(
+                    ["e2label", device_path],
+                    capture_output=True, text=True, check=True
+                )
+                label = result.stdout.strip()
+                if label:
+                    return label
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+        
         return ""
     
     def _get_health_status(self, device_path: str) -> str:
