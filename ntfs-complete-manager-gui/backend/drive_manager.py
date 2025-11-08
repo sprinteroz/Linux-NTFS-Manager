@@ -239,9 +239,21 @@ class DriveManager:
                     if os.path.exists(serial_file):
                         with open(serial_file, 'r') as f:
                             serial = f.read().strip()
+                    
+                    # For NVMe, vendor is often part of the model string
+                    # Try to extract vendor from model (e.g., "Samsung SSD 970" -> "Samsung")
+                    if model and not vendor:
+                        # Common NVMe vendors
+                        known_vendors = ['Samsung', 'SK hynix', 'WD', 'Western Digital', 
+                                        'Intel', 'Crucial', 'Kingston', 'Seagate', 
+                                        'Toshiba', 'Micron', 'ADATA', 'Corsair', 'SanDisk']
+                        for known_vendor in known_vendors:
+                            if known_vendor.lower() in model.lower():
+                                vendor = known_vendor
+                                break
             
-            # Fallback to udevadm
-            if not model or not vendor:
+            # Fallback to udevadm - try multiple vendor fields
+            if not model or not vendor or not serial:
                 device_path = f"/dev/{device_name}"
                 result = subprocess.run(
                     ["udevadm", "info", "--query=property", "--name", device_path],
@@ -251,8 +263,10 @@ class DriveManager:
                 for line in result.stdout.splitlines():
                     if not model and line.startswith("ID_MODEL="):
                         model = line.split("=", 1)[1].replace("_", " ")
-                    elif not vendor and line.startswith("ID_VENDOR="):
-                        vendor = line.split("=", 1)[1]
+                    elif not vendor and (line.startswith("ID_VENDOR=") or line.startswith("ID_VENDOR_ID=")):
+                        vendor_value = line.split("=", 1)[1].strip()
+                        if vendor_value and vendor_value not in ["0x0000", "ATA"]:
+                            vendor = vendor_value.replace("_", " ")
                     elif not serial and line.startswith("ID_SERIAL_SHORT="):
                         serial = line.split("=", 1)[1]
                         
@@ -267,10 +281,10 @@ class DriveManager:
         if lsblk_label:
             return lsblk_label
         
-        # Try blkid for all filesystem types
+        # Try blkid with sudo for all filesystem types (more reliable)
         try:
             result = subprocess.run(
-                ["blkid", "-s", "LABEL", "-o", "value", device_path],
+                ["sudo", "blkid", "-s", "LABEL", "-o", "value", device_path],
                 capture_output=True, text=True, check=True
             )
             label = result.stdout.strip()
@@ -279,11 +293,11 @@ class DriveManager:
         except subprocess.CalledProcessError:
             pass
         
-        # NTFS-specific: try ntfslabel
+        # NTFS-specific: try ntfslabel with sudo
         if fstype == "ntfs":
             try:
                 result = subprocess.run(
-                    ["ntfslabel", device_path],
+                    ["sudo", "ntfslabel", device_path],
                     capture_output=True, text=True, check=True
                 )
                 label = result.stdout.strip()
@@ -291,12 +305,26 @@ class DriveManager:
                     return label
             except (subprocess.CalledProcessError, FileNotFoundError):
                 pass
+            
+            # Alternative: try ntfsinfo to extract volume name
+            try:
+                result = subprocess.run(
+                    ["sudo", "ntfsinfo", "-m", device_path],
+                    capture_output=True, text=True, check=True
+                )
+                for line in result.stdout.splitlines():
+                    if "Volume Name:" in line:
+                        label = line.split(":", 1)[1].strip()
+                        if label and label != "<none>":
+                            return label
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
         
         # ext filesystem: try e2label
         if fstype and fstype.startswith("ext"):
             try:
                 result = subprocess.run(
-                    ["e2label", device_path],
+                    ["sudo", "e2label", device_path],
                     capture_output=True, text=True, check=True
                 )
                 label = result.stdout.strip()
