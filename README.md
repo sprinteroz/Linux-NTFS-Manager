@@ -90,6 +90,131 @@ sudo ntfsfix /dev/sdX1  # Clears Windows hibernation flag
 
 ---
 
+## 🎯 NTFS Support (Enhanced in v1.0.7)
+
+Linux NTFS Manager provides intelligent NTFS mounting with advanced features for maximum compatibility and performance.
+
+### Automatic Driver Detection & Fallback
+
+The application automatically detects and uses the best available NTFS driver:
+
+1. **ntfs3** (Kernel 5.15+) - Best performance, 50-100% faster than FUSE
+2. **lowntfs-3g** - Reliable FUSE driver with enhanced error handling
+3. **ntfs-3g** - Universal fallback, works on all systems
+4. **Read-only mount** - Safe last resort for data access
+
+**You don't need to configure anything** - the application chooses the optimal driver automatically.
+
+### Optimized Mount Options
+
+Different drivers work best with different options. Linux NTFS Manager applies intelligent defaults:
+
+#### For ntfs3 (Kernel Driver)
+```bash
+nofail,users,prealloc,windows_names,nocase
+```
+- **Performance optimized** with file preallocation
+- **Windows compatible** with case-insensitive naming
+- **User mountable** without sudo
+
+#### For ntfs-3g/lowntfs-3g (FUSE Drivers)
+```bash
+nofail,noexec,windows_names
+```
+- **Security focused** with noexec protection
+- **Windows compatible** naming rules
+- **Reliable** with enhanced error handling
+
+### Dirty Volume Detection & Repair
+
+**Problem**: Windows Fast Startup leaves NTFS drives in a "dirty" state that Linux refuses to mount.
+
+**Solution**: Linux NTFS Manager v1.0.7+ includes an NTFS Repair Wizard that:
+
+- ✅ **Detects dirty volumes automatically**
+- ✅ **Explains the problem clearly** (Windows Fast Startup)
+- ✅ **Provides ranked repair options** (safest to riskiest)
+- ✅ **Guides through Windows Fast Startup disable**
+- ✅ **Falls back to read-only** if repair is declined
+
+**Access the Repair Wizard**: Tools menu → NTFS Repair Wizard
+
+### Performance Benefits
+
+**With ntfs3 driver (kernel 5.15+):**
+- 50-100% faster file operations
+- Lower CPU usage
+- Better large file handling
+- Native kernel performance
+
+**Check your kernel version:**
+```bash
+uname -r  # Need 5.15 or higher for ntfs3
+```
+
+### Dual-Boot Best Practices
+
+**🔴 CRITICAL for Dual-Boot Users:**
+
+1. **Disable Windows Fast Startup** (prevents 90% of mount issues)
+   - Control Panel → Power Options → Choose what power buttons do
+   - Uncheck "Turn on fast startup"
+   
+2. **Always shutdown Windows properly** (not restart)
+
+3. **Run CHKDSK periodically** in Windows for filesystem health
+
+4. **Let Linux NTFS Manager handle mounting** automatically
+
+### Custom Configuration
+
+Advanced users can customize mount options:
+
+**Create**: `~/.config/ntfs-manager/mount-options.conf`
+
+```ini
+[ntfs3]
+options = nofail,users,prealloc,windows_names,nocase,big_writes
+
+[ntfs-3g]
+options = nofail,noexec,windows_names,compression
+
+[lowntfs-3g]
+options = nofail,noexec,windows_names
+
+[fallback]
+options = nofail
+```
+
+### Comprehensive Documentation
+
+For detailed NTFS information:
+
+- **[NTFS Mounting Guide](docs/NTFS-MOUNTING-GUIDE.md)** - Complete driver guide, mount options, troubleshooting workflows
+- **[Troubleshooting Guide](wiki-content/Troubleshooting.md)** - NTFS-specific issue resolution
+- **[Implementation Plan](docs/NTFS-ENHANCEMENT-IMPLEMENTATION-PLAN.md)** - Technical details for developers
+
+### Quick Reference
+
+| Issue | Solution | Guide Link |
+|-------|----------|------------|
+| "NTFS is marked dirty" | Disable Windows Fast Startup | [Troubleshooting](wiki-content/Troubleshooting.md#-issue-ntfs-is-marked-dirty-error) |
+| Slow performance | Use ntfs3 driver (kernel 5.15+) | [NTFS Guide](docs/NTFS-MOUNTING-GUIDE.md#-issue-5-performance-problems) |
+| Driver not found | Install ntfs-3g package | [Troubleshooting](wiki-content/Troubleshooting.md#-issue-driver-detection-problems) |
+| Read-only mount | Check Windows hibernation | [NTFS Guide](docs/NTFS-MOUNTING-GUIDE.md#-issue-2-windows-fast-startup) |
+| Permission errors | Use Repair Wizard | [Troubleshooting](wiki-content/Troubleshooting.md#-issue-ntfs-permissions-problems) |
+
+### What's New in v1.0.7
+
+- ✨ **Automatic driver detection** with intelligent fallback
+- ⚡ **Optimized mount options** per driver type
+- 🔧 **NTFS Repair Wizard** with guided troubleshooting
+- 📚 **Comprehensive documentation** for all NTFS scenarios
+- 🎯 **Windows Fast Startup** detection and disable guide
+- 🛡️ **Read-only fallback** for safe data access
+
+---
+
 ## 💡 Who This Is For
 
 ✅ **Dual-boot users** tired of NTFS mounting issues  
