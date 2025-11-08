@@ -7,7 +7,7 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.6-green.svg)](VERSION)
-
+[![Version](https://img.shields.io/badge/version-1.0.7-orange.svg)](NEXT VERSION)
 ---
 
 ## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
@@ -497,9 +497,10 @@ Thanks to all users who have contributed to making NTFS Manager better through f
 
 ## 📈 Version History
 
-**Current Version**: 1.0.3 (Stable)
+**Current Version**: 1.0.6 (Stable)
 
 ### Recent Updates
+- **v1.0.6**: Release v1.0.6: Drive Details Enhancement
 - **v1.0.3**: Testing new stable release
 - **v1.0.2**: Security fixes and stability improvements
 - **v1.0.1**: System resource management tools
