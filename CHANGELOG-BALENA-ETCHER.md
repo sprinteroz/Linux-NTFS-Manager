@@ -1,5 +1,61 @@
 # Changelog - Balena Etcher Compatibility Fix
 
+## [1.0.6] - 2025-11-06
+
+### 🔧 Drive Details Enhancement
+
+#### Fixed
+
+**Drive Information Display:**
+- Fixed empty Vendor field for NVMe drives (now extracts from model string)
+- Fixed empty hardware info (Model/Vendor/Serial) for partitions
+  - Partitions now inherit hardware info from parent device
+  - sda1 now shows info from sda, nvme0n1p1 from nvme0n1, etc.
+- Fixed virtual device status messages
+  - zram0 and other virtual devices now show "N/A (virtual device)"
+  - Previously showed misleading "Unknown" or "Error" status
+
+**Backend Improvements:**
+- Enhanced `_get_hardware_info()` with NVMe vendor parsing
+  - Detects known vendors (Samsung, SK hynix, Intel, etc.) from model string
+  - Falls back to multiple udevadm property fields
+- Improved `_get_volume_label()` with sudo support
+  - Uses sudo for blkid, ntfslabel, ntfsinfo commands
+  - Better NTFS label detection for unmounted partitions
+- Enhanced parent device resolution for all partition types
+  - Handles NVMe partitions (nvme0n1p1 → nvme0n1)
+  - Handles SATA partitions (sda1 → sda)
+
+#### Changed
+
+**User Experience:**
+- More accurate and complete drive information
+- Virtual devices properly identified
+- Partition hardware details now complete
+
+### 🧪 Testing
+
+**All Improvements Verified:**
+- ✅ NVMe vendor extraction: "SK hynix", "Samsung" displaying correctly
+- ✅ Partition hardware info: sda1 shows Model/Vendor/Serial from sda
+- ✅ Virtual device handling: zram0 shows "N/A (virtual device)"
+- ✅ NTFS health status: Properly detects "Healthy" status
+- ✅ All 8 drives detected and displaying complete information
+
+### 📝 Notes
+
+**For Users:**
+- Empty Label fields are correct if the partition has no volume label set
+- Use `sudo ntfslabel /dev/sdX1 "LabelName"` to set labels if desired
+- All improvements work on existing installations after restart
+
+**For Developers:**
+- Parent device resolution handles all device naming conventions
+- Vendor extraction supports all major NVMe manufacturers
+- Label extraction works with or without sudo password prompts
+
+---
+
 ## [1.0.5] - 2025-11-06
 
 ### ✨ Major Feature Update - Complete Drive Management Suite
