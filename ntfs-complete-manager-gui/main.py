@@ -106,6 +106,9 @@ class NTFSManager:
         self.ntfs_properties_cache = {}  # {device_path: {'properties': NTFSProperties, 'timestamp': float}}
         self.ntfs_cache_ttl = 60.0  # 60 second TTL for NTFS properties
         
+        # Tool availability - check which external tools are available
+        self.available_tools = self.check_tool_availability()
+        
         # Setup drive event callbacks
         self.drive_manager.add_callback(self.on_drive_event)
         
@@ -117,6 +120,207 @@ class NTFSManager:
         
         # Start drive monitoring
         self.drive_manager.start_monitoring()
+    
+    def check_tool_availability(self):
+        """Check which external tools are available on the system"""
+        tools = {
+            'ntfsfix': False,
+            'mkfs.ntfs': False,
+            'gparted': False,
+            'dd': False,
+            'eject': False,
+            'lsof': False,
+            'fuser': False
+        }
+        
+        for tool in tools.keys():
+            try:
+                result = subprocess.run(['which', tool], capture_output=True, text=True)
+                tools[tool] = (result.returncode == 0)
+                if tools[tool]:
+                    self.logger.debug(f"Tool available: {tool}")
+                else:
+                    self.logger.debug(f"Tool missing: {tool}")
+            except Exception as e:
+                self.logger.debug(f"Error checking {tool}: {e}")
+                tools[tool] = False
+        
+        return tools
+    
+    def validate_filesystem_label(self, label: str, fstype: str) -> tuple[bool, str]:
+        """Validate filesystem label according to filesystem rules
+        
+        Returns: (is_valid, error_message)
+        """
+        if not label:
+            return True, ""  # Empty label is valid
+        
+        # Common restrictions
+        if len(label) > 255:
+            return False, "Label too long (max 255 characters)"
+        
+        # Filesystem-specific rules
+        if fstype == 'ntfs':
+            # NTFS allows most characters but has length limit of 32
+            if len(label) > 32:
+                return False, "NTFS label too long (max 32 characters)"
+            # No path separators
+            if '/' in label or '\\' in label:
+                return False, "NTFS label cannot contain / or \\"
+        elif fstype == 'fat32':
+            # FAT32 is more restrictive
+            if len(label) > 11:
+                return False, "FAT32 label too long (max 11 characters)"
+            # No special characters
+            invalid_chars = ['/', '\\', '*', '?', '"', '<', '>', '|', '+', ',', ';', '=', '[', ']']
+            for char in invalid_chars:
+                if char in label:
+                    return False, f"FAT32 label cannot contain: {', '.join(invalid_chars)}"
+        elif fstype == 'ext4':
+            # EXT4 allows most characters
+            if len(label) > 16:
+                return False, "EXT4 label too long (max 16 characters)"
+        
+        return True, ""
+    
+    def validate_iso_file(self, iso_path: str) -> tuple[bool, str]:
+        """Validate ISO file path and properties
+        
+        Returns: (is_valid, error_message)
+        """
+        # Check if path is provided
+        if not iso_path or not iso_path.strip():
+            return False, "No ISO file selected"
+        
+        # Sanitize path
+        iso_path = os.path.abspath(os.path.expanduser(iso_path.strip()))
+        
+        # Check if file exists
+        if not os.path.exists(iso_path):
+            return False, f"File not found: {iso_path}"
+        
+        # Check if it's a file (not directory)
+        if not os.path.isfile(iso_path):
+            return False, f"Not a file: {iso_path}"
+        
+        # Check if file is readable
+        if not os.access(iso_path, os.R_OK):
+            return False, f"File is not readable: {iso_path}"
+        
+        # Check file extension
+        if not iso_path.lower().endswith('.iso'):
+            return False, "File must have .iso extension"
+        
+        # Check file size (should be reasonable, at least 1MB, max 100GB)
+        try:
+            file_size = os.path.getsize(iso_path)
+            if file_size < 1024 * 1024:  # 1MB
+                return False, "ISO file too small (less than 1MB - likely corrupt)"
+            if file_size > 100 * 1024 * 1024 * 1024:  # 100GB
+                return False, "ISO file too large (over 100GB - check file)"
+        except Exception as e:
+            return False, f"Cannot read file size: {e}"
+        
+        return True, ""
+    
+    def sanitize_device_path(self, device_name: str) -> tuple[bool, str]:
+        """Sanitize and validate device path to prevent injection
+        
+        Returns: (is_valid, sanitized_path)
+        """
+        if not device_name:
+            return False, ""
+        
+        # Remove any path components - device name should be simple
+        device_name = os.path.basename(device_name)
+        
+        # Validate device name format (sda, sda1, nvme0n1p1, etc.)
+        import re
+        # Pattern: sd[a-z], sd[a-z][0-9]+, nvme[0-9]+n[0-9]+, nvme[0-9]+n[0-9]+p[0-9]+
+        valid_patterns = [
+            r'^sd[a-z]$',                    # sda, sdb
+            r'^sd[a-z][0-9]+$',              # sda1, sdb2
+            r'^nvme[0-9]+n[0-9]+$',          # nvme0n1
+            r'^nvme[0-9]+n[0-9]+p[0-9]+$',  # nvme0n1p1
+            r'^mmcblk[0-9]+$',               # mmcblk0
+            r'^mmcblk[0-9]+p[0-9]+$',       # mmcblk0p1
+        ]
+        
+        is_valid = any(re.match(pattern, device_name) for pattern in valid_patterns)
+        
+        if not is_valid:
+            return False, ""
+        
+        return True, f"/dev/{device_name}"
+    
+    def check_device_busy(self, device_path: str) -> tuple[bool, list]:
+        """Check if device is busy (has open file handles)
+        
+        Returns: (is_busy, list_of_processes)
+        """
+        processes = []
+        
+        # Try lsof first
+        if self.available_tools.get('lsof'):
+            try:
+                result = subprocess.run(['lsof', device_path], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0 and result.stdout.strip():
+                    # Parse lsof output to get process names
+                    for line in result.stdout.split('\n')[1:]:  # Skip header
+                        if line.strip():
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                processes.append(parts[0])  # Command name
+                    return True, processes
+            except Exception as e:
+                self.logger.debug(f"lsof check failed: {e}")
+        
+        # Try fuser as fallback
+        if self.available_tools.get('fuser'):
+            try:
+                result = subprocess.run(['fuser', device_path], 
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0 and result.stdout.strip():
+                    return True, ['unknown process']
+            except Exception as e:
+                self.logger.debug(f"fuser check failed: {e}")
+        
+        return False, []
+    
+    def retry_operation(self, operation_func, max_retries=3, delay=1.0):
+        """Retry an operation with exponential backoff
+        
+        Args:
+            operation_func: Function to retry (should return bool success)
+            max_retries: Maximum number of retry attempts
+            delay: Initial delay between retries (doubles each time)
+        
+        Returns: (success, error_message)
+        """
+        for attempt in range(max_retries):
+            try:
+                success = operation_func()
+                if success:
+                    return True, ""
+                
+                # Operation failed, check if we should retry
+                if attempt < max_retries - 1:
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff
+                    self.logger.debug(f"Retry attempt {attempt + 1}/{max_retries}, waiting {wait_time}s")
+                    time.sleep(wait_time)
+                else:
+                    return False, "Operation failed after maximum retries"
+                    
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = delay * (2 ** attempt)
+                    self.logger.debug(f"Exception on attempt {attempt + 1}: {e}, retrying in {wait_time}s")
+                    time.sleep(wait_time)
+                else:
+                    return False, f"Operation failed: {str(e)}"
+        
+        return False, "Operation failed"
     
     def auto_mount_internal_drives(self):
         """Auto-mount internal NTFS drives on startup"""
@@ -728,18 +932,24 @@ class NTFSManager:
         Gtk.main_quit()
     
     def show_format_dialog(self):
-        """Show format dialog"""
+        """Show format dialog with input validation"""
         dialog = Gtk.Dialog(title="Format Drive", parent=self.window, flags=Gtk.DialogFlags.MODAL)
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("Format", Gtk.ResponseType.OK)
-        dialog.set_default_size(400, 300)
+        dialog.set_default_size(400, 350)
         
         content_area = dialog.get_content_area()
         
         # Warning label
-        warning_label = Gtk.Label(label=f"WARNING: This will erase all data on {self.selected_drive}!")
-        warning_label.get_style_context().add_class("warning")
+        warning_label = Gtk.Label(label=f"⚠️ WARNING: This will erase ALL data on {self.selected_drive}!")
+        warning_label.set_markup(f"<b><span foreground='red'>⚠️ WARNING: This will erase ALL data on {self.selected_drive}!</span></b>")
         content_area.pack_start(warning_label, False, False, 10)
+        
+        # Tool availability check
+        if not self.available_tools.get('mkfs.ntfs'):
+            info_label = Gtk.Label(label="Note: ntfs-3g tools not found. NTFS formatting may not be available.")
+            info_label.set_line_wrap(True)
+            content_area.pack_start(info_label, False, False, 5)
         
         # Filesystem selection
         fs_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
@@ -754,14 +964,38 @@ class NTFSManager:
         fs_box.pack_start(fs_combo, True, True, 5)
         content_area.pack_start(fs_box, False, False, 5)
         
-        # Label entry
-        label_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        # Label entry with validation feedback
+        label_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        label_entry_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         label_entry_label = Gtk.Label(label="Label:")
         label_entry = Gtk.Entry()
+        label_entry.set_placeholder_text("Optional - leave empty for no label")
         
-        label_box.pack_start(label_entry_label, False, False, 5)
-        label_box.pack_start(label_entry, True, True, 5)
+        label_entry_box.pack_start(label_entry_label, False, False, 5)
+        label_entry_box.pack_start(label_entry, True, True, 5)
+        label_box.pack_start(label_entry_box, False, False, 0)
+        
+        # Validation feedback label
+        validation_label = Gtk.Label(label="")
+        validation_label.set_line_wrap(True)
+        label_box.pack_start(validation_label, False, False, 0)
         content_area.pack_start(label_box, False, False, 5)
+        
+        # Real-time validation on label entry
+        def on_label_changed(entry):
+            text = entry.get_text()
+            fstype = fs_combo.get_active_text()
+            is_valid, error_msg = self.validate_filesystem_label(text, fstype)
+            
+            if not is_valid:
+                validation_label.set_markup(f"<span foreground='red'>⚠️ {error_msg}</span>")
+            elif text:
+                validation_label.set_markup(f"<span foreground='green'>✓ Label is valid</span>")
+            else:
+                validation_label.set_text("")
+        
+        label_entry.connect("changed", on_label_changed)
+        fs_combo.connect("changed", lambda _: on_label_changed(label_entry))
         
         dialog.show_all()
         response = dialog.run()
@@ -769,6 +1003,29 @@ class NTFSManager:
         if response == Gtk.ResponseType.OK:
             fstype = fs_combo.get_active_text()
             label = label_entry.get_text()
+            
+            # Validate label
+            is_valid, error_msg = self.validate_filesystem_label(label, fstype)
+            if not is_valid:
+                dialog.destroy()
+                self.show_error_dialog("Invalid Label", error_msg)
+                return
+            
+            # Check if device is busy
+            device_path = f"/dev/{self.selected_drive}"
+            is_busy, processes = self.check_device_busy(device_path)
+            if is_busy:
+                dialog.destroy()
+                process_list = ", ".join(processes[:3])  # Show first 3 processes
+                self.show_error_dialog(
+                    "Device Busy", 
+                    f"Cannot format {self.selected_drive}.\n\n"
+                    f"The device is being used by: {process_list}\n\n"
+                    f"Please close these programs and try again."
+                )
+                return
+            
+            dialog.destroy()
             
             try:
                 success = self.drive_manager.format_drive(self.selected_drive, fstype, label)
@@ -782,8 +1039,8 @@ class NTFSManager:
             except Exception as e:
                 self.show_error_dialog("Format error", f"Error formatting drive: {e}")
                 self.logger.error(f"Error formatting drive {self.selected_drive}: {e}")
-        
-        dialog.destroy()
+        else:
+            dialog.destroy()
     
     def show_iso_burn_dialog(self):
         """Show ISO burning dialog"""
@@ -867,14 +1124,35 @@ class NTFSManager:
             iso_file = iso_entry.get_text()
             verify = verify_check.get_active()
             
-            if not iso_file:
+            # Validate ISO file
+            is_valid, error_msg = self.validate_iso_file(iso_file)
+            if not is_valid:
                 dialog.destroy()
-                self.show_error_dialog("No ISO selected", "Please select an ISO file to burn.")
+                self.show_error_dialog("Invalid ISO File", error_msg)
                 return
             
-            if not os.path.exists(iso_file):
+            # Check if device is busy
+            device_path = f"/dev/{self.selected_drive}"
+            is_busy, processes = self.check_device_busy(device_path)
+            if is_busy:
                 dialog.destroy()
-                self.show_error_dialog("File not found", f"ISO file not found: {iso_file}")
+                process_list = ", ".join(processes[:3])
+                self.show_error_dialog(
+                    "Device Busy", 
+                    f"Cannot burn ISO to {self.selected_drive}.\n\n"
+                    f"The device is being used by: {process_list}\n\n"
+                    f"Please close these programs and try again."
+                )
+                return
+            
+            # Check if dd tool is available
+            if not self.available_tools.get('dd'):
+                dialog.destroy()
+                self.show_error_dialog(
+                    "Missing Tool",
+                    "The 'dd' command is not available on your system.\n\n"
+                    "Please install coreutils package to burn ISO files."
+                )
                 return
             
             # Perform the burn operation
