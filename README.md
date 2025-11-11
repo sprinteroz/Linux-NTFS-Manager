@@ -85,7 +85,7 @@ cd Linux-NTFS-Manager
 sudo ntfsfix /dev/sdX1  # Clears Windows hibernation flag
 ```
 
-**[📥 Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases/tag/v1.0.3)** | **[📖 Read Testing Guide](TESTING-GUIDE.md)** | **[🐛 Report Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)**
+**[📥 Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases/tag/v1.0.12)** | **[📖 Read Testing Guide](TESTING-GUIDE.md)** | **[🐛 Report Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)**
 
 ---
 
