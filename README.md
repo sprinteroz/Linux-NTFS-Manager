@@ -7,7 +7,7 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.6-green.svg)](VERSION)
-[![Version](https://img.shields.io/badge/version-1.0.7-orange.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.8.1-orange.svg)](VERSION)
 ---
 
 ## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
@@ -360,8 +360,8 @@ ntfs-manager --unmount /dev/sdb1
 ## 📁 Downloads
 
 ### Stable Release
-- **Version**: 1.0.3
-- **Release Date**: November 4, 2025
+- **Version**: 1.0.6
+- **Release Date**: November 9, 2025
 - **Status**: Production Ready
 
 ### Download Options
