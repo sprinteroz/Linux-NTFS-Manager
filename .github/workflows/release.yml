@@ -210,6 +210,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: always()  # Run even if build has issues
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     
     steps:
     - name: Checkout code
@@ -227,7 +231,7 @@ jobs:
     - name: Upload Trivy scan results
       if: always()
       continue-on-error: true
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
 
