@@ -102,6 +102,10 @@ class NTFSManager:
         self.last_refresh_time = 0
         self.refresh_cooldown = 1.0  # Debounce: min 1 second between refreshes
         
+        # Cache for NTFS properties to avoid expensive re-queries
+        self.ntfs_properties_cache = {}  # {device_path: {'properties': NTFSProperties, 'timestamp': float}}
+        self.ntfs_cache_ttl = 60.0  # 60 second TTL for NTFS properties
+        
         # Setup drive event callbacks
         self.drive_manager.add_callback(self.on_drive_event)
         
@@ -325,7 +329,7 @@ class NTFSManager:
             self.clear_drive_details()
     
     def update_drive_details(self, drive_name):
-        """Update the drive details panel"""
+        """Update the drive details panel with caching for NTFS properties"""
         if not drive_name:
             return
         
@@ -342,13 +346,50 @@ class NTFSManager:
             # Get NTFS-specific properties if it's an NTFS drive
             if properties.get('fstype') == 'ntfs':
                 device_path = f"/dev/{drive_name}"
-                try:
-                    ntfs_props = NTFSProperties(device_path)
-                    ntfs_details = ntfs_props.get_windows_style_properties()
-                    details_text = f"NTFS Properties for {drive_name}:\n\n{ntfs_details}"
-                except Exception as ntfs_error:
-                    # Fallback to basic properties if NTFS check fails
-                    details_text = self.format_basic_properties(drive_name, properties)
+                current_time = time.time()
+                
+                # Check cache first
+                cache_entry = self.ntfs_properties_cache.get(device_path)
+                if cache_entry:
+                    # Check if cache is still valid (within TTL)
+                    cache_age = current_time - cache_entry['timestamp']
+                    if cache_age < self.ntfs_cache_ttl:
+                        # Cache hit - use cached properties
+                        self.logger.debug(f"NTFS properties cache hit for {drive_name} (age: {cache_age:.1f}s)")
+                        ntfs_props = cache_entry['properties']
+                        try:
+                            ntfs_details = ntfs_props.get_windows_style_properties()
+                            details_text = f"NTFS Properties for {drive_name}:\n\n{ntfs_details}"
+                        except Exception as ntfs_error:
+                            # Cache entry might be stale, remove it and fallback
+                            self.logger.debug(f"Cached NTFS properties failed, removing cache entry")
+                            del self.ntfs_properties_cache[device_path]
+                            details_text = self.format_basic_properties(drive_name, properties)
+                    else:
+                        # Cache expired - remove and query fresh
+                        self.logger.debug(f"NTFS properties cache expired for {drive_name} (age: {cache_age:.1f}s)")
+                        del self.ntfs_properties_cache[device_path]
+                        cache_entry = None
+                
+                # Cache miss or expired - query fresh NTFS properties
+                if not cache_entry or cache_age >= self.ntfs_cache_ttl:
+                    try:
+                        self.logger.debug(f"NTFS properties cache miss for {drive_name}, querying fresh data")
+                        ntfs_props = NTFSProperties(device_path)
+                        
+                        # Store in cache
+                        self.ntfs_properties_cache[device_path] = {
+                            'properties': ntfs_props,
+                            'timestamp': current_time
+                        }
+                        self.logger.debug(f"Cached NTFS properties for {drive_name}")
+                        
+                        ntfs_details = ntfs_props.get_windows_style_properties()
+                        details_text = f"NTFS Properties for {drive_name}:\n\n{ntfs_details}"
+                    except Exception as ntfs_error:
+                        # Fallback to basic properties if NTFS check fails
+                        self.logger.debug(f"NTFS properties query failed: {ntfs_error}")
+                        details_text = self.format_basic_properties(drive_name, properties)
             else:
                 # Basic properties for non-NTFS drives
                 details_text = self.format_basic_properties(drive_name, properties)
@@ -449,7 +490,14 @@ class NTFSManager:
         GLib.idle_add(self.handle_drive_event_gui, event_type, drive_info)
     
     def handle_drive_event_gui(self, event_type: str, drive_info: DriveInfo):
-        """Handle drive events in GUI thread"""
+        """Handle drive events in GUI thread with cache invalidation"""
+        device_path = f"/dev/{drive_info.name}"
+        
+        # Invalidate NTFS properties cache for this drive
+        if device_path in self.ntfs_properties_cache:
+            self.logger.debug(f"Invalidating NTFS properties cache for {drive_info.name} due to {event_type} event")
+            del self.ntfs_properties_cache[device_path]
+        
         if event_type == "added":
             self.update_status(f"Drive {drive_info.name} connected")
             self.refresh_drives()
