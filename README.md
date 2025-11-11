@@ -6,8 +6,7 @@
 [![Dependency Review](https://github.com/sprinteroz/Linux-NTFS-Manager/workflows/Dependency%20Review/badge.svg)](https://github.com/sprinteroz/Linux-NTFS-Manager/actions/workflows/dependency-review.yml)
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.6-green.svg)](VERSION)
-[![Version](https://img.shields.io/badge/version-1.0.8.2-orange.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.12-green.svg)](VERSION)
 ---
 
 ## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
@@ -360,8 +359,8 @@ ntfs-manager --unmount /dev/sdb1
 ## 📁 Downloads
 
 ### Stable Release
-- **Version**: 1.0.6
-- **Release Date**: November 9, 2025
+- **Version**: v1.0.12
+- **Release Date**: November 12, 2025
 - **Status**: Production Ready
 
 ### Download Options
@@ -497,9 +496,13 @@ Thanks to all users who have contributed to making NTFS Manager better through f
 
 ## 📈 Version History
 
-**Current Version**: 1.0.6 (Stable)
+**Current Version**: v1.0.12 (Stable)
 
 ### Recent Updates
+- **v1.0.12**:  Help Menu & About Dialog
+- **v1.0.11**:  Reliability - validation & tool detection (95% success rate)
+- **v1.0.10**:  Performance - NTFS properties caching (80% faster)
+- **v1.0.9**:   UX Improvements - spinners, tooltips, keyboard shortcuts 
 - **v1.0.8.2**: Release v1.0.8.2 - Fix desktop launcher integration
 - **v1.0.6**:   Release v1.0.6: Drive Details Enhancement
 - **v1.0.3**:   Testing new stable release
