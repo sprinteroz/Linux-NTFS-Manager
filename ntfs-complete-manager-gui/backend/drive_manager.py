@@ -105,7 +105,8 @@ class DriveManager:
             model = device.get("model", "")
             serial = device.get("serial", "")
             uuid = device.get("uuid", "")
-            is_removable = device.get("rm", "0") == "1"
+            # Use enhanced removable detection instead of just lsblk RM flag
+            is_removable = self._is_drive_removable(name, device.get("rm", "0"))
             is_rotational = device.get("rota", "0") == "1"
             
             # Get additional information
@@ -157,6 +158,98 @@ class DriveManager:
         except Exception as e:
             print(f"Error parsing device info: {e}")
             return None
+    
+    def _is_drive_removable(self, device_name: str, lsblk_rm_flag: str) -> bool:
+        """
+        Enhanced removable drive detection using multiple methods
+        
+        Checks:
+        1. lsblk RM flag (basic check)
+        2. USB connection detection via sysfs
+        3. sysfs removable capability flag
+        4. Device type heuristics
+        
+        Args:
+            device_name: Device name (e.g., 'sdb', 'nvme0n1')
+            lsblk_rm_flag: RM flag from lsblk ("0" or "1")
+        
+        Returns:
+            bool: True if drive is removable/hot-swappable
+        """
+        # Skip virtual devices
+        if device_name.startswith("loop") or device_name.startswith("zram") or device_name.startswith("ram"):
+            return False
+        
+        # Method 1: lsblk RM flag (quick check)
+        if lsblk_rm_flag == "1":
+            return True
+        
+        # For partitions, check parent device
+        device_to_check = device_name
+        if re.match(r'^sd[a-z]\d+$', device_name):  # sda1, sdb2, etc.
+            device_to_check = re.sub(r'\d+$', '', device_name)  # sda1 -> sda
+        elif device_name.startswith("nvme") and "p" in device_name:  # nvme0n1p1
+            device_to_check = device_name.rsplit("p", 1)[0]  # nvme0n1p1 -> nvme0n1
+        
+        # Method 2: Check if device is connected via USB
+        try:
+            # Check if device path contains 'usb' in its hierarchy
+            device_path = f"/sys/block/{device_to_check}"
+            if os.path.exists(device_path):
+                # Read the device's subsystem links
+                result = subprocess.run(
+                    ["udevadm", "info", "--query=property", "--name", f"/dev/{device_to_check}"],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    for line in result.stdout.splitlines():
+                        # Check for USB connection indicators
+                        if line.startswith("ID_BUS=usb") or line.startswith("ID_USB_DRIVER="):
+                            print(f"[REMOVABLE] {device_name} detected as USB device")
+                            return True
+                        # Check device path for USB
+                        if line.startswith("DEVPATH=") and "/usb" in line:
+                            print(f"[REMOVABLE] {device_name} detected via USB path")
+                            return True
+        except Exception as e:
+            print(f"[REMOVABLE] Error checking USB connection for {device_name}: {e}")
+        
+        # Method 3: Check sysfs removable flag
+        try:
+            removable_path = f"/sys/block/{device_to_check}/removable"
+            if os.path.exists(removable_path):
+                with open(removable_path, 'r') as f:
+                    removable_value = f.read().strip()
+                    if removable_value == "1":
+                        print(f"[REMOVABLE] {device_name} marked as removable in sysfs")
+                        return True
+        except Exception as e:
+            print(f"[REMOVABLE] Error checking sysfs removable flag for {device_name}: {e}")
+        
+        # Method 4: Check if it's an external/hotplug capable device
+        try:
+            # Check for hotplug capability
+            device_path = f"/sys/block/{device_to_check}/device"
+            if os.path.exists(device_path):
+                # Read device type information
+                result = subprocess.run(
+                    ["udevadm", "info", "--query=property", "--name", f"/dev/{device_to_check}"],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    for line in result.stdout.splitlines():
+                        # External devices often have these properties
+                        if line.startswith("ID_TYPE=disk") and "ID_BUS=usb" in result.stdout:
+                            return True
+                        # Check for external designation
+                        if "UDISKS_SYSTEM=0" in result.stdout or "ID_DRIVE_DETACHABLE=1" in result.stdout:
+                            print(f"[REMOVABLE] {device_name} detected as external/detachable")
+                            return True
+        except Exception as e:
+            print(f"[REMOVABLE] Error checking device type for {device_name}: {e}")
+        
+        # Default: not removable
+        return False
     
     def _get_device_type(self, device_name: str) -> str:
         """Determine device type (disk, partition, special)"""
