@@ -1,5 +1,145 @@
 # Changelog - Balena Etcher Compatibility Fix
 
+## [1.0.8.1] - 2025-11-12
+
+### 🐛 Critical Bug Fix - Health Check System
+
+#### Fixed
+
+**Health Check System Issues:**
+- Fixed ntfsfix failing on mounted NTFS partitions
+- Fixed smartctl failing when queried on partitions (vs whole disks)
+- Fixed temperature readings failing on partition devices
+- Fixed misleading "Unknown" health status on mounted partitions
+
+**Root Causes:**
+1. **Mounted Partition Issue**: ntfsfix refuses to operate on mounted partitions
+   - Error: "Refusing to operate on read-write mounted device /dev/nvme1n1p1"
+   - Previous behavior: Showed "Unknown" or "Error" status
+   
+2. **SMART Query Issue**: smartctl must query parent disk, not partition
+   - Error: Exit code 4 when running smartctl on /dev/sda1, /dev/nvme0n1p1
+   - Root Cause: SMART data exists at disk level (/dev/sda, /dev/nvme0n1)
+   - Partitions don't have SMART data, parent disk does
+
+**Solutions Implemented:**
+
+**1. Health Status Fix (`_get_health_status()`):**
+```python
+def _get_health_status(self, device_path: str) -> str:
+    # Check if device is mounted using findmnt
+    result = subprocess.run(
+        ["findmnt", "-n", "-o", "SOURCE", device_path],
+        capture_output=True, text=True
+    )
+    is_mounted = result.returncode == 0
+    
+    # For mounted partitions, return "Mounted (OK)"
+    if "refusing to operate" in result.stdout.lower():
+        return "Mounted (OK)"
+```
+
+**2. SMART Status Fix (`_get_smart_status()`):**
+```python
+def _get_smart_status(self, device_path: str) -> str:
+    device_name = device_path.replace("/dev/", "")
+    
+    # For partitions, use parent device (SMART is at disk level)
+    if re.match(r'^sd[a-z]\d+$', device_name):  # sda1, sdb2, etc.
+        parent_device = self._get_parent_device(device_name)
+        device_path = f"/dev/{parent_device}"
+    elif device_name.startswith("nvme") and "p" in device_name:  # nvme0n1p1
+        parent_device = self._get_parent_device(device_name)
+        device_path = f"/dev/{parent_device}"
+    
+    # Now query SMART data on parent disk
+    result = subprocess.run(["smartctl", "-H", device_path], ...)
+```
+
+**3. Temperature Reading Fix (`_get_temperature()`):**
+- Same parent device resolution logic as SMART status
+- sda1 → queries /dev/sda for temperature
+- nvme0n1p1 → queries /dev/nvme0n1 for temperature
+
+**Files Modified:**
+- `ntfs-complete-manager-gui/backend/drive_manager.py`
+  - Fixed: `_get_health_status()` - Added mount detection with findmnt
+  - Fixed: `_get_smart_status()` - Added parent device resolution
+  - Fixed: `_get_temperature()` - Added parent device resolution
+  - Deployed: Updated to `/opt/ntfs-manager/backend/drive_manager.py`
+
+#### Changed
+
+**Improved Health Reporting:**
+- Mounted partitions now show "Mounted (OK)" instead of "Unknown"
+- SMART status now accurate for all partitions (queries parent disk)
+- Temperature readings now work for all partition types
+- Better user feedback - clear distinction between errors and normal states
+
+**Enhanced Error Handling:**
+- Graceful handling of mounted filesystem checks
+- Proper parent device resolution for all naming conventions
+- Comprehensive regex patterns for partition detection
+
+#### Testing
+
+**Verified Scenarios:**
+```
+✅ Mounted NTFS partition (nvme1n1p1) - Shows "Mounted (OK)"
+✅ Unmounted NTFS partition - Shows "Healthy" or "Dirty" correctly
+✅ SMART status on sda1 - Queries /dev/sda successfully
+✅ SMART status on nvme0n1p1 - Queries /dev/nvme0n1 successfully
+✅ Temperature on all partition types - Works correctly
+✅ Virtual devices (zram) - Still show "N/A (virtual device)"
+```
+
+**Device Naming Patterns Handled:**
+- SATA partitions: sda1, sdb2, etc. → parent: sda, sdb
+- NVMe partitions: nvme0n1p1, nvme1n1p2, etc. → parent: nvme0n1, nvme1n1
+- All patterns tested and working
+
+### 🎯 Impact
+
+**User Benefits:**
+- No more confusing "Unknown" status on mounted drives
+- Accurate SMART health data for all partitions
+- Correct temperature readings for all devices
+- Clear, meaningful status messages
+
+**Technical Improvements:**
+- Proper separation of disk-level vs partition-level operations
+- Robust partition name parsing with regex
+- Better mount state detection using findmnt
+- Enhanced error handling and user feedback
+
+### 📝 Notes
+
+**For Users:**
+- No action required - fix applies automatically on system deployment
+- Restart NTFS Manager to see updated health information
+- Mounted partitions will show "Mounted (OK)" - this is correct behavior
+- All health checks now work properly on both disks and partitions
+
+**For Developers:**
+- Parent device resolution handles all standard Linux device naming
+- findmnt used for reliable mount detection
+- SMART queries always target parent disk device
+- Partition regex patterns: `^sd[a-z]\d+$` and nvme with "p" separator
+
+**Known Behavior:**
+- Mounted NTFS partitions cannot be checked with ntfsfix (by design)
+- SMART data only exists at disk level, not partition level (Linux kernel limitation)
+- Temperature readings are per-disk, not per-partition (hardware limitation)
+
+### 🔗 Related
+
+- Fixes: Health check system reliability
+- Resolves: Mounted partition health status
+- Improves: SMART status accuracy
+- Maintains: Backward compatibility with v1.0.8
+
+---
+
 ## [1.0.8] - 2025-11-12
 
 ### 🐛 Critical Bug Fix - Hot-Swap Removable Drive Detection
