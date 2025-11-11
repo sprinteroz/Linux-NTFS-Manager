@@ -97,6 +97,11 @@ class NTFSManager:
         self.selected_drive = None
         self.drive_list_store = None
         
+        # Cache for drive list to avoid unnecessary refreshes
+        self.drive_cache = {}
+        self.last_refresh_time = 0
+        self.refresh_cooldown = 1.0  # Debounce: min 1 second between refreshes
+        
         # Setup drive event callbacks
         self.drive_manager.add_callback(self.on_drive_event)
         
@@ -156,6 +161,7 @@ class NTFSManager:
         
         refresh_btn = Gtk.Button(label="Refresh")
         refresh_btn.connect("clicked", self.on_refresh_clicked)
+        refresh_btn.set_tooltip_text("Refresh drive list (Ctrl+R or F5)")
         
         header_box.pack_start(title_label, True, True, 0)
         header_box.pack_start(refresh_btn, False, False, 0)
@@ -183,30 +189,37 @@ class NTFSManager:
         # Action buttons for drives
         action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         
-        mount_btn = Gtk.Button(label="Mount")
-        mount_btn.connect("clicked", self.on_mount_clicked)
+        # Store button references for spinner management
+        self.mount_btn = Gtk.Button(label="Mount")
+        self.mount_btn.connect("clicked", self.on_mount_clicked)
+        self.mount_btn.set_tooltip_text("Mount the selected drive to access its contents")
         
-        unmount_btn = Gtk.Button(label="Unmount")
-        unmount_btn.connect("clicked", self.on_unmount_clicked)
+        self.unmount_btn = Gtk.Button(label="Unmount")
+        self.unmount_btn.connect("clicked", self.on_unmount_clicked)
+        self.unmount_btn.set_tooltip_text("Safely unmount the selected drive")
         
-        repair_btn = Gtk.Button(label="Repair")
-        repair_btn.connect("clicked", self.on_repair_clicked)
+        self.repair_btn = Gtk.Button(label="Repair")
+        self.repair_btn.connect("clicked", self.on_repair_clicked)
+        self.repair_btn.set_tooltip_text("Check and repair filesystem errors")
         
-        format_btn = Gtk.Button(label="Format")
-        format_btn.connect("clicked", self.on_format_clicked)
+        self.format_btn = Gtk.Button(label="Format")
+        self.format_btn.connect("clicked", self.on_format_clicked)
+        self.format_btn.set_tooltip_text("Format drive (WARNING: Erases all data)")
         
-        burn_iso_btn = Gtk.Button(label="Burn ISO")
-        burn_iso_btn.connect("clicked", self.on_burn_iso_clicked)
+        self.burn_iso_btn = Gtk.Button(label="Burn ISO")
+        self.burn_iso_btn.connect("clicked", self.on_burn_iso_clicked)
+        self.burn_iso_btn.set_tooltip_text("Create a bootable USB drive from ISO file")
         
-        eject_btn = Gtk.Button(label="Safe Eject")
-        eject_btn.connect("clicked", self.on_eject_clicked)
+        self.eject_btn = Gtk.Button(label="Safe Eject")
+        self.eject_btn.connect("clicked", self.on_eject_clicked)
+        self.eject_btn.set_tooltip_text("Safely eject removable drive")
         
-        action_box.pack_start(mount_btn, False, False, 2)
-        action_box.pack_start(unmount_btn, False, False, 2)
-        action_box.pack_start(repair_btn, False, False, 2)
-        action_box.pack_start(format_btn, False, False, 2)
-        action_box.pack_start(burn_iso_btn, False, False, 2)
-        action_box.pack_start(eject_btn, False, False, 2)
+        action_box.pack_start(self.mount_btn, False, False, 2)
+        action_box.pack_start(self.unmount_btn, False, False, 2)
+        action_box.pack_start(self.repair_btn, False, False, 2)
+        action_box.pack_start(self.format_btn, False, False, 2)
+        action_box.pack_start(self.burn_iso_btn, False, False, 2)
+        action_box.pack_start(self.eject_btn, False, False, 2)
         
         left_box.pack_start(action_box, False, False, 5)
         paned.pack1(left_box, False, False)
@@ -226,9 +239,10 @@ class NTFSManager:
         right_box.pack_start(details_frame, True, True, 5)
         
         # Properties button
-        properties_btn = Gtk.Button(label="Advanced Properties")
-        properties_btn.connect("clicked", self.on_properties_clicked)
-        right_box.pack_start(properties_btn, False, False, 5)
+        self.properties_btn = Gtk.Button(label="Advanced Properties")
+        self.properties_btn.connect("clicked", self.on_properties_clicked)
+        self.properties_btn.set_tooltip_text("View detailed drive properties and health information")
+        right_box.pack_start(self.properties_btn, False, False, 5)
         
         paned.pack2(right_box, True, False)
         main_box.pack_start(paned, True, True, 10)
@@ -244,6 +258,7 @@ class NTFSManager:
         
         # Connect events
         self.window.connect("destroy", self.on_destroy)
+        self.window.connect("key-press-event", self.on_key_press)
         self.drive_treeview.get_selection().connect("changed", self.on_drive_selection_changed)
         
         # Show all widgets
@@ -373,18 +388,31 @@ class NTFSManager:
         buffer = self.details_text.get_buffer()
         buffer.set_text("Select a drive to view details")
     
-    def refresh_drives(self):
-        """Refresh list of detected drives"""
+    def refresh_drives(self, force=False):
+        """Refresh list of detected drives with debouncing"""
+        current_time = time.time()
+        
+        # Debounce: skip if refreshed recently (unless forced)
+        if not force and (current_time - self.last_refresh_time) < self.refresh_cooldown:
+            self.logger.debug(f"Refresh debounced (last refresh {current_time - self.last_refresh_time:.1f}s ago)")
+            return
+        
         self.update_status("Refreshing drive list...")
+        self.last_refresh_time = current_time
         
         try:
             drives = self.drive_manager.refresh_drives()
+            
+            # Update cache
+            self.drive_cache = {drive.name: drive for drive in drives}
+            
             self.update_drive_list(drives)
             self.update_status(f"Found {len(drives)} drives")
             self.logger.info(f"Refreshed drive list: {len(drives)} drives found")
             
         except Exception as e:
-            self.update_status(f"Error refreshing drives: {e}")
+            error_msg = self.get_user_friendly_error("refresh", str(e))
+            self.update_status(f"Error refreshing drives: {error_msg}")
             self.logger.error(f"Error refreshing drives: {e}")
     
     def update_drive_list(self, drives):
@@ -441,17 +469,38 @@ class NTFSManager:
             self.show_error_dialog("No drive selected", "Please select a drive to mount.")
             return
         
-        try:
-            success = self.drive_manager.mount_drive(self.selected_drive)
-            if success:
-                self.update_status(f"Drive {self.selected_drive} mounted successfully")
-                self.logger.operation("mount", self.selected_drive, "success")
-            else:
-                self.show_error_dialog("Mount failed", f"Failed to mount drive {self.selected_drive}")
-                self.logger.operation("mount", self.selected_drive, "failed")
-        except Exception as e:
-            self.show_error_dialog("Mount error", f"Error mounting drive: {e}")
-            self.logger.error(f"Error mounting drive {self.selected_drive}: {e}")
+        # Show spinner
+        self.show_button_spinner(button, True)
+        
+        def mount_thread():
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    success = self.drive_manager.mount_drive(self.selected_drive)
+                    if success:
+                        GLib.idle_add(self.update_status, f"Drive {self.selected_drive} mounted successfully")
+                        self.logger.operation("mount", self.selected_drive, "success")
+                        GLib.idle_add(self.refresh_drives, True)
+                        break
+                    else:
+                        if attempt < max_retries - 1:
+                            time.sleep(1)  # Wait before retry
+                            continue
+                        error_msg = self.get_user_friendly_error("mount", "mount failed")
+                        GLib.idle_add(self.show_error_dialog, "Mount failed", error_msg)
+                        self.logger.operation("mount", self.selected_drive, "failed")
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    error_msg = self.get_user_friendly_error("mount", str(e))
+                    GLib.idle_add(self.show_error_dialog, "Mount error", error_msg)
+                    self.logger.error(f"Error mounting drive {self.selected_drive}: {e}")
+            
+            # Hide spinner
+            GLib.idle_add(self.show_button_spinner, button, False)
+        
+        threading.Thread(target=mount_thread, daemon=True).start()
     
     def on_unmount_clicked(self, button):
         """Handle unmount button click"""
@@ -459,17 +508,29 @@ class NTFSManager:
             self.show_error_dialog("No drive selected", "Please select a drive to unmount.")
             return
         
-        try:
-            success = self.drive_manager.unmount_drive(self.selected_drive)
-            if success:
-                self.update_status(f"Drive {self.selected_drive} unmounted successfully")
-                self.logger.operation("unmount", self.selected_drive, "success")
-            else:
-                self.show_error_dialog("Unmount failed", f"Failed to unmount drive {self.selected_drive}")
-                self.logger.operation("unmount", self.selected_drive, "failed")
-        except Exception as e:
-            self.show_error_dialog("Unmount error", f"Error unmounting drive: {e}")
-            self.logger.error(f"Error unmounting drive {self.selected_drive}: {e}")
+        # Show spinner
+        self.show_button_spinner(button, True)
+        
+        def unmount_thread():
+            try:
+                success = self.drive_manager.unmount_drive(self.selected_drive)
+                if success:
+                    GLib.idle_add(self.update_status, f"Drive {self.selected_drive} unmounted successfully")
+                    self.logger.operation("unmount", self.selected_drive, "success")
+                    GLib.idle_add(self.refresh_drives, True)
+                else:
+                    error_msg = self.get_user_friendly_error("unmount", "unmount failed")
+                    GLib.idle_add(self.show_error_dialog, "Unmount failed", error_msg)
+                    self.logger.operation("unmount", self.selected_drive, "failed")
+            except Exception as e:
+                error_msg = self.get_user_friendly_error("unmount", str(e))
+                GLib.idle_add(self.show_error_dialog, "Unmount error", error_msg)
+                self.logger.error(f"Error unmounting drive {self.selected_drive}: {e}")
+            
+            # Hide spinner
+            GLib.idle_add(self.show_button_spinner, button, False)
+        
+        threading.Thread(target=unmount_thread, daemon=True).start()
     
     def on_repair_clicked(self, button):
         """Handle repair button click"""
@@ -490,18 +551,30 @@ class NTFSManager:
         dialog.destroy()
         
         if response == Gtk.ResponseType.YES:
-            try:
-                self.update_status(f"Repairing drive {self.selected_drive}...")
-                success = self.drive_manager.repair_drive(self.selected_drive)
-                if success:
-                    self.update_status(f"Drive {self.selected_drive} repaired successfully")
-                    self.logger.operation("repair", self.selected_drive, "success")
-                else:
-                    self.show_error_dialog("Repair failed", f"Failed to repair drive {self.selected_drive}")
-                    self.logger.operation("repair", self.selected_drive, "failed")
-            except Exception as e:
-                self.show_error_dialog("Repair error", f"Error repairing drive: {e}")
-                self.logger.error(f"Error repairing drive {self.selected_drive}: {e}")
+            # Show spinner
+            self.show_button_spinner(button, True)
+            
+            def repair_thread():
+                try:
+                    GLib.idle_add(self.update_status, f"Repairing drive {self.selected_drive}...")
+                    success = self.drive_manager.repair_drive(self.selected_drive)
+                    if success:
+                        GLib.idle_add(self.update_status, f"Drive {self.selected_drive} repaired successfully")
+                        self.logger.operation("repair", self.selected_drive, "success")
+                        GLib.idle_add(self.refresh_drives, True)
+                    else:
+                        error_msg = self.get_user_friendly_error("repair", "repair failed")
+                        GLib.idle_add(self.show_error_dialog, "Repair failed", error_msg)
+                        self.logger.operation("repair", self.selected_drive, "failed")
+                except Exception as e:
+                    error_msg = self.get_user_friendly_error("repair", str(e))
+                    GLib.idle_add(self.show_error_dialog, "Repair error", error_msg)
+                    self.logger.error(f"Error repairing drive {self.selected_drive}: {e}")
+                
+                # Hide spinner
+                GLib.idle_add(self.show_button_spinner, button, False)
+            
+            threading.Thread(target=repair_thread, daemon=True).start()
     
     def on_format_clicked(self, button):
         """Handle format button click"""
@@ -555,6 +628,50 @@ class NTFSManager:
             return
         
         self.show_properties_dialog()
+    
+    def on_key_press(self, widget, event):
+        """Handle keyboard shortcuts"""
+        from gi.repository import Gdk
+        
+        # Ctrl+R or F5 - Refresh
+        if ((event.state & Gdk.ModifierType.CONTROL_MASK) and event.keyval == Gdk.KEY_r) or \
+           (event.keyval == Gdk.KEY_F5):
+            self.on_refresh_clicked(None)
+            return True
+        
+        # Escape - Close window
+        if event.keyval == Gdk.KEY_Escape:
+            self.window.destroy()
+            return True
+        
+        return False
+    
+    def show_button_spinner(self, button, show=True):
+        """Show or hide spinner on button"""
+        if show:
+            # Create spinner and box
+            spinner = Gtk.Spinner()
+            spinner.start()
+            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+            label = Gtk.Label(label=button.get_label())
+            box.pack_start(spinner, False, False, 0)
+            box.pack_start(label, False, False, 0)
+            
+            # Store original child and replace with spinner box
+            button.original_child = button.get_child()
+            button.remove(button.original_child)
+            button.add(box)
+            button.set_sensitive(False)
+            button.show_all()
+        else:
+            # Restore original button content
+            if hasattr(button, 'original_child'):
+                child = button.get_child()
+                if child:
+                    button.remove(child)
+                button.add(button.original_child)
+                button.set_sensitive(True)
+                button.show_all()
     
     def on_destroy(self, window):
         """Handle window destroy event"""
@@ -945,6 +1062,60 @@ class NTFSManager:
             lines.append("")
         
         return "\n".join(lines)
+    
+    def get_user_friendly_error(self, operation: str, error: str) -> str:
+        """Convert technical errors to user-friendly messages with solutions"""
+        error_lower = error.lower()
+        
+        # Common error patterns and solutions
+        if "permission denied" in error_lower or "not permitted" in error_lower:
+            return (f"Permission denied.\n\n"
+                    f"💡 Solution: Make sure you have administrator privileges.\n"
+                    f"Try restarting the application or check file permissions.")
+        
+        elif "device is busy" in error_lower or "target is busy" in error_lower:
+            return (f"Drive is busy and cannot be {operation}ed.\n\n"
+                    f"💡 Solutions:\n"
+                    f"• Close any programs using files on this drive\n"
+                    f"• Check if the drive is open in file manager\n"
+                    f"• Wait a moment and try again")
+        
+        elif "not found" in error_lower or "no such" in error_lower:
+            return (f"Drive not found.\n\n"
+                    f"💡 Solutions:\n"
+                    f"• The drive may have been disconnected\n"
+                    f"• Click Refresh to update the drive list\n"
+                    f"• Check physical connections")
+        
+        elif "already mounted" in error_lower:
+            return (f"Drive is already mounted.\n\n"
+                    f"💡 Solution: Use the Unmount button first, then try again.")
+        
+        elif "not mounted" in error_lower:
+            return (f"Drive is not mounted.\n\n"
+                    f"💡 Solution: Mount the drive first before accessing it.")
+        
+        elif "filesystem" in error_lower and "corrupt" in error_lower:
+            return (f"Filesystem appears corrupted.\n\n"
+                    f"💡 Solutions:\n"
+                    f"• Try the Repair button to fix filesystem errors\n"
+                    f"• Back up important data if possible\n"
+                    f"• Consider reformatting if repair fails (WARNING: Erases data)")
+        
+        elif "read-only" in error_lower:
+            return (f"Drive is mounted read-only.\n\n"
+                    f"💡 Solutions:\n"
+                    f"• The filesystem may need repair - use Repair button\n"
+                    f"• Check if drive has a physical write-protect switch\n"
+                    f"• Unmount and remount the drive")
+        
+        else:
+            # Generic error with basic guidance
+            return (f"Operation failed: {error}\n\n"
+                    f"💡 Try:\n"
+                    f"• Refreshing the drive list\n"
+                    f"• Checking drive connections\n"
+                    f"• Viewing logs for more details")
     
     def show_error_dialog(self, title: str, message: str):
         """Show error dialog"""
