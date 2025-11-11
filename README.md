@@ -7,7 +7,7 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.6-green.svg)](VERSION)
-[![Version](https://img.shields.io/badge/version-1.0.8.1-orange.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.8.2-orange.svg)](VERSION)
 ---
 
 ## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
