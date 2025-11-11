@@ -432,16 +432,34 @@ class DriveManager:
     def _get_health_status(self, device_path: str) -> str:
         """Get drive health status"""
         try:
+            # Check if device is mounted
+            result = subprocess.run(
+                ["findmnt", "-n", "-o", "SOURCE", device_path],
+                capture_output=True, text=True
+            )
+            is_mounted = result.returncode == 0
+            
             # For NTFS drives, check dirty bit using ntfsfix
             fstype = self._get_filesystem_type(device_path)
             if fstype == "ntfs":
-                result = subprocess.run(
-                    ["ntfsfix", "-n", device_path],
-                    capture_output=True, text=True
-                )
+                if is_mounted:
+                    # For mounted partitions, use read-only check
+                    result = subprocess.run(
+                        ["ntfsfix", "-n", device_path],
+                        capture_output=True, text=True
+                    )
+                else:
+                    # For unmounted partitions, normal check
+                    result = subprocess.run(
+                        ["ntfsfix", "-n", device_path],
+                        capture_output=True, text=True
+                    )
                 
                 if "marked to be fixed" in result.stdout or "dirty" in result.stdout.lower():
                     return "Dirty"
+                elif "refusing to operate" in result.stdout.lower() or "read-write mounted" in result.stdout.lower():
+                    # Mounted, cannot check - return healthy assumption
+                    return "Mounted (OK)"
                 elif result.returncode == 0:
                     return "Healthy"
                 else:
@@ -455,7 +473,18 @@ class DriveManager:
     def _get_temperature(self, device_path: str) -> float:
         """Get drive temperature if available"""
         try:
-            # Try to get temperature from hddtemp or smartctl
+            # Get device name and check if it's a partition
+            device_name = device_path.replace("/dev/", "")
+            
+            # For partitions, use parent device (SMART is at disk level)
+            if re.match(r'^sd[a-z]\d+$', device_name):  # sda1, sdb2, etc.
+                parent_device = self._get_parent_device(device_name)
+                device_path = f"/dev/{parent_device}"
+            elif device_name.startswith("nvme") and "p" in device_name:  # nvme0n1p1
+                parent_device = self._get_parent_device(device_name)
+                device_path = f"/dev/{parent_device}"
+            
+            # Try to get temperature from smartctl
             result = subprocess.run(
                 ["smartctl", "-A", device_path],
                 capture_output=True, text=True, check=True
@@ -476,6 +505,17 @@ class DriveManager:
     def _get_smart_status(self, device_path: str) -> str:
         """Get SMART status"""
         try:
+            # Get device name and check if it's a partition
+            device_name = device_path.replace("/dev/", "")
+            
+            # For partitions, use parent device (SMART is at disk level)
+            if re.match(r'^sd[a-z]\d+$', device_name):  # sda1, sdb2, etc.
+                parent_device = self._get_parent_device(device_name)
+                device_path = f"/dev/{parent_device}"
+            elif device_name.startswith("nvme") and "p" in device_name:  # nvme0n1p1
+                parent_device = self._get_parent_device(device_name)
+                device_path = f"/dev/{parent_device}"
+            
             result = subprocess.run(
                 ["smartctl", "-H", device_path],
                 capture_output=True, text=True, check=True
