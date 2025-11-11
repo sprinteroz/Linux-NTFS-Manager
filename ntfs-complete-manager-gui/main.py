@@ -362,6 +362,10 @@ class NTFSManager:
         # Create main container
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         
+        # Add menu bar
+        menubar = self.create_menu_bar()
+        main_box.pack_start(menubar, False, False, 0)
+        
         # Add header with title and refresh button
         header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         title_label = Gtk.Label(label="NTFS Complete Manager v2.0")
@@ -473,6 +477,118 @@ class NTFSManager:
         self.window.show_all()
         
         self.logger.info("NTFS Manager GUI started")
+    
+    def create_menu_bar(self):
+        """Create the menu bar with Help menu"""
+        menubar = Gtk.MenuBar()
+        
+        # Create Help menu
+        help_menu = Gtk.Menu()
+        help_item = Gtk.MenuItem(label="Help")
+        help_item.set_submenu(help_menu)
+        
+        # About menu item
+        about_item = Gtk.MenuItem(label="About NTFS Manager")
+        about_item.connect("activate", lambda w: self.show_about_dialog())
+        help_menu.append(about_item)
+        
+        # Report Issue menu item
+        report_item = Gtk.MenuItem(label="Report Issue")
+        report_item.connect("activate", lambda w: self.open_url("https://github.com/sprinteroz/Linux-NTFS-Manager/issues"))
+        help_menu.append(report_item)
+        
+        # Community Discussions menu item
+        discuss_item = Gtk.MenuItem(label="Community Discussions")
+        discuss_item.connect("activate", lambda w: self.open_url("https://github.com/sprinteroz/Linux-NTFS-Manager/discussions"))
+        help_menu.append(discuss_item)
+        
+        # Separator
+        help_menu.append(Gtk.SeparatorMenuItem())
+        
+        # View on GitHub menu item
+        github_item = Gtk.MenuItem(label="View on GitHub")
+        github_item.connect("activate", lambda w: self.open_url("https://github.com/sprinteroz/Linux-NTFS-Manager"))
+        help_menu.append(github_item)
+        
+        menubar.append(help_item)
+        
+        return menubar
+    
+    def open_url(self, url):
+        """Open URL in default browser"""
+        import webbrowser
+        try:
+            webbrowser.open(url)
+            self.update_status(f"Opening {url}...")
+            self.logger.info(f"Opened URL: {url}")
+        except Exception as e:
+            self.show_error_dialog("Error", f"Could not open URL: {e}")
+            self.logger.error(f"Error opening URL {url}: {e}")
+    
+    def show_about_dialog(self):
+        """Show About dialog with version, links, and license info"""
+        # Read version from VERSION file
+        version = "1.0.11"  # Default
+        try:
+            version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "VERSION")
+            if os.path.exists(version_file):
+                with open(version_file, 'r') as f:
+                    version = f.read().strip()
+        except Exception as e:
+            self.logger.debug(f"Could not read VERSION file: {e}")
+        
+        # Create About dialog using Gtk.AboutDialog
+        about = Gtk.AboutDialog(transient_for=self.window, modal=True)
+        
+        # Set program information
+        about.set_program_name("NTFS Complete Manager")
+        about.set_version(f"v{version}")
+        about.set_copyright("© 2023-2025 MagDriveX")
+        about.set_comments("Professional NTFS Drive Management for Linux\n\n"
+                          "✅ FREE for personal use\n"
+                          "💼 Commercial license required for business")
+        
+        # Set logo if available
+        try:
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "ntfs-manager-256.png")
+            if os.path.exists(icon_path):
+                logo = GdkPixbuf.Pixbuf.new_from_file(icon_path)
+                about.set_logo(logo)
+        except Exception as e:
+            self.logger.debug(f"Could not load logo: {e}")
+        
+        # Set website
+        about.set_website("https://github.com/sprinteroz/Linux-NTFS-Manager")
+        about.set_website_label("View on GitHub")
+        
+        # Set license text
+        license_text = ("DUAL LICENSE: Personal & Commercial\n\n"
+                       "This software is FREE for personal, non-commercial use.\n\n"
+                       "FREE Personal License:\n"
+                       "• Home/personal computing\n"
+                       "• Educational purposes\n"
+                       "• Non-profit activities\n\n"
+                       "Commercial License Required:\n"
+                       "• Business/workplace use\n"
+                       "• Revenue-generating activities\n"
+                       "• Organizational deployment\n\n"
+                       "For commercial licensing:\n"
+                       "Email: support_ntfs@magdrivex.com.au\n\n"
+                       "See LICENSE-PERSONAL and LICENSE-COMMERCIAL files for full terms.")
+        about.set_license(license_text)
+        about.set_wrap_license(True)
+        
+        # Add authors
+        about.set_authors(["MagDriveX Team"])
+        
+        # Add documenters (optional)
+        about.set_documenters(["See GitHub contributors"])
+        
+        # Show dialog and wait for response
+        about.run()
+        about.destroy()
+        
+        self.logger.info("About dialog shown")
     
     def create_drive_list(self):
         """Create the drive list TreeView"""
@@ -884,6 +1000,16 @@ class NTFSManager:
     def on_key_press(self, widget, event):
         """Handle keyboard shortcuts"""
         from gi.repository import Gdk
+        
+        # F1 - Open About dialog
+        if event.keyval == Gdk.KEY_F1:
+            self.show_about_dialog()
+            return True
+        
+        # Ctrl+H - Open About dialog
+        if (event.state & Gdk.ModifierType.CONTROL_MASK) and event.keyval == Gdk.KEY_h:
+            self.show_about_dialog()
+            return True
         
         # Ctrl+R or F5 - Refresh
         if ((event.state & Gdk.ModifierType.CONTROL_MASK) and event.keyval == Gdk.KEY_r) or \
