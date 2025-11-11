@@ -10,6 +10,7 @@ import sys
 import os
 import threading
 import time
+import fcntl
 from pathlib import Path
 
 # Add backend to path
@@ -963,9 +964,64 @@ class NTFSManager:
         context = self.status_bar.get_context_id("status")
         self.status_bar.push(context, message)
 
+def check_single_instance():
+    """Check if another instance is already running"""
+    lock_file = "/tmp/ntfs-manager.lock"
+    try:
+        # Try to open lock file
+        lock_fd = open(lock_file, 'w')
+        # Try to acquire exclusive lock (non-blocking)
+        fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Write PID to lock file
+        lock_fd.write(str(os.getpid()))
+        lock_fd.flush()
+        return lock_fd  # Return file descriptor to keep lock
+    except IOError:
+        # Another instance is running
+        print("NTFS Manager is already running!")
+        dialog = Gtk.MessageDialog(
+            parent=None,
+            flags=0,
+            type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            message_format="NTFS Manager is already running"
+        )
+        dialog.format_secondary_text(
+            "Another instance of NTFS Complete Manager is already open.\n"
+            "Please use the existing window."
+        )
+        dialog.run()
+        dialog.destroy()
+        sys.exit(0)
+
 def main():
+    # Check for single instance
+    lock_fd = check_single_instance()
+    
+    # Set GTK application properties for proper window grouping
+    # This ensures the window appears under the correct launcher icon
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk, GLib
+    
+    # Set WM_CLASS to match .desktop file's StartupWMClass
+    GLib.set_prgname("ntfs-complete-manager")
+    GLib.set_application_name("NTFS Complete Manager")
+    
     app = NTFSManager()
+    
+    # Set window class name for proper icon binding
+    app.window.set_wmclass("ntfs-complete-manager", "ntfs-complete-manager")
+    
     Gtk.main()
+    
+    # Cleanup lock file on exit
+    try:
+        fcntl.flock(lock_fd.fileno(), fcntl.LOCK_UN)
+        lock_fd.close()
+        os.unlink("/tmp/ntfs-manager.lock")
+    except:
+        pass
 
 if __name__ == "__main__":
     main()
