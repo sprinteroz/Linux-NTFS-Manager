@@ -1,6 +1,6 @@
 # NTFS Manager - Professional NTFS Drive Management for Linux
 
-[![NTFS Manager Logo](https://github.com/sprinteroz/Linux-NTFS-Manager/raw/main/icons/ntfs-manager-256.png)]
+![NTFS Manager Logo](assets/images/ntfs-manager-256.png)
 
 [![CI](https://github.com/sprinteroz/Linux-NTFS-Manager/workflows/Continuous%20Integration%20(Simple)/badge.svg)](https://github.com/sprinteroz/Linux-NTFS-Manager/actions/workflows/ci-simple.yml)
 [![Dependency Review](https://github.com/sprinteroz/Linux-NTFS-Manager/workflows/Dependency%20Review/badge.svg)](https://github.com/sprinteroz/Linux-NTFS-Manager/actions/workflows/dependency-review.yml)
