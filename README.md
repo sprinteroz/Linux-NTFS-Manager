@@ -6,7 +6,7 @@
 [![Dependency Review](https://github.com/sprinteroz/Linux-NTFS-Manager/workflows/Dependency%20Review/badge.svg)](https://github.com/sprinteroz/Linux-NTFS-Manager/actions/workflows/dependency-review.yml)
 [![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
 [![License: Dual](https://img.shields.io/badge/License-Dual-orange.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.12-green.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.14-green.svg)](VERSION)
 ---
 
 ## 🔴 Frustrated by "NTFS Drive is Read-Only" Errors?
@@ -85,7 +85,7 @@ cd Linux-NTFS-Manager
 sudo ntfsfix /dev/sdX1  # Clears Windows hibernation flag
 ```
 
-**[📥 Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases/tag/v1.0.12)** | **[📖 Read Testing Guide](TESTING-GUIDE.md)** | **[🐛 Report Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)**
+**[📥 Download Latest Release](https://github.com/sprinteroz/Linux-NTFS-Manager/releases/tag/v1.0.14)** | **[📖 Read Testing Guide](TESTING-GUIDE.md)** | **[🐛 Report Issues](https://github.com/sprinteroz/Linux-NTFS-Manager/issues)**
 
 ---
 
@@ -359,7 +359,7 @@ ntfs-manager --unmount /dev/sdb1
 ## 📁 Downloads
 
 ### Stable Release
-- **Version**: v1.0.12
+- **Version**: v1.0.14
 - **Release Date**: November 12, 2025
 - **Status**: Production Ready
 
@@ -496,9 +496,10 @@ Thanks to all users who have contributed to making NTFS Manager better through f
 
 ## 📈 Version History
 
-**Current Version**: v1.0.12 (Stable)
+**Current Version**: v1.0.14 (Stable)
 
 ### Recent Updates
+- **v1.0.14**:  Release v1.0.14 - Help Menu & About Dialog
 - **v1.0.12**:  Help Menu & About Dialog
 - **v1.0.11**:  Reliability - validation & tool detection (95% success rate)
 - **v1.0.10**:  Performance - NTFS properties caching (80% faster)
